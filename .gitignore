@@ -1,0 +1,22 @@
+# Ignore build output
+bin/
+obj/
+
+# Ignore user-specific files
+*.user
+*.suo
+
+# Ignore Visual Studio temporary files, build results, and generated files
+.vs/
+*.cache
+*.pdb
+*.log
+*.bak
+*.tmp
+
+# Ignore NuGet packages
+*.nupkg
+packages/
+
+# Ignore all files with the .log extension
+*.log
