@@ -3,26 +3,32 @@ using BDSManager.WebUI.IO;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Newtonsoft.Json;
+using BDSManager.WebUI.Services;
 
 namespace BDSManager.WebUI.Pages;
 
 public class IndexModel : PageModel
 {
     private readonly ILogger<IndexModel> _logger;
-    private readonly OptionsIO _optionsIO = new();
+    private readonly OptionsIO _optionsIO;
+    private readonly MinecraftServerService _minecraftServerService;
+    [BindProperty]
+    public List<ServerModel> Servers { get; set; } = new();
 
-    public IndexModel(ILogger<IndexModel> logger)
+    public IndexModel(ILogger<IndexModel> logger, MinecraftServerService minecraftServerService, OptionsIO optionsIO)
     {
         _logger = logger;
+        _minecraftServerService = minecraftServerService;
+        _optionsIO = optionsIO;
+        Servers = _optionsIO.ManagerOptions.Servers;
     }
 
-    public void OnGet()
+    public IActionResult OnGet()
     {
-        ManagerOptionsModel options = _optionsIO.LoadOptions();
+        
         if (_optionsIO.FirstSetup)
-        {
-            // redirect to new server page
-
-        }
+            return RedirectToPage("./NewServer");
+        
+        return Page();
     }
 }

@@ -1,6 +1,8 @@
 # Ignore build output
 bin/
 obj/
+bds/
+manager.json
 
 # Ignore user-specific files
 *.user

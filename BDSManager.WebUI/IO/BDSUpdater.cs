@@ -11,33 +11,54 @@ public class BDSUpdater
     private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
     private readonly ServerProperties _serverProperties;
     private readonly string _url = "https://www.minecraft.net/en-us/download/server/bedrock/";
+    private readonly string? _downloadPath;
+    private readonly string? _serversPath;
 
     public BDSUpdater(Microsoft.Extensions.Configuration.IConfiguration configuration, ServerProperties serverProperties)
     {
         _configuration = configuration;
         _serverProperties = serverProperties;
+        _downloadPath = _configuration["DownloadPath"];
+        _serversPath = _configuration["ServersPath"];
     }
 
     public async Task UpdateBedrockServerAsync(ServerModel server)
     {
-        if(_configuration["DownloadPath"] == null)
+        if(string.IsNullOrEmpty(_downloadPath))
             throw new Exception("Download path not set in configuration");
+        
+        if(string.IsNullOrEmpty(_serversPath))
+            throw new Exception("Servers path not set in configuration");
 
-        bool isCurrent = await IsDownloadedBedrockServerCurrentAsync();
-        if (isCurrent == true)
+        if(string.IsNullOrEmpty(server.Path))
+            throw new Exception("Server path is not set");
+
+        if(!Directory.Exists(_serversPath))
+            Directory.CreateDirectory(_serversPath);
+        if(!Directory.Exists(_downloadPath))
+            Directory.CreateDirectory(_downloadPath);
+
+        var destinationPath = Path.Combine(_serversPath, server.Path);
+
+        if(!Directory.Exists(destinationPath))
+            Directory.CreateDirectory(destinationPath);
+
+        if(await IsInstalledBedrockServerCurrentAsync(server))
             return;
+            
 
-        var filePath = await DownloadBedrockServerAsync();
-        if(filePath == null)
+        var filePath = await IsDownloadedBedrockServerCurrentAsync() ? await GetDownloadedBedrockServerPathAsync() : await DownloadBedrockServerAsync();
+        if(string.IsNullOrEmpty(filePath))
             throw new Exception("Could not download bedrock server");
-
-        ZipFile.ExtractToDirectory(filePath, server.Path);
+        ZipFile.ExtractToDirectory(filePath, destinationPath);
 
         _serverProperties.SaveServerProperties(server);
         _serverProperties.SavePermissions(server);
         _serverProperties.SaveAllowList(server);
 
-        File.WriteAllText(Path.Combine(server.Path, "version.txt"), ParseVersionFromFileName(filePath));
+        var version = ParseVersionFromFileName(filePath);
+        File.WriteAllText(Path.Combine(destinationPath, "version.txt"), version);
+        server.Version = version;
     }
 
     private async Task<string?> DownloadBedrockServerAsync()
@@ -54,7 +75,10 @@ public class BDSUpdater
         if (fileName == null)
             throw new Exception("Could not parse file name from download link");
 
-        string? filePath = Path.Combine(_configuration["DownloadPath"], fileName);
+        if(string.IsNullOrEmpty(_downloadPath))
+            throw new Exception("Download path not set in configuration");
+
+        string? filePath = Path.Combine(_downloadPath, fileName);
         if (filePath == null)
             throw new Exception("Could not parse file path from download link");
         
@@ -67,7 +91,7 @@ public class BDSUpdater
         return filePath;
     }
 
-    public async Task<bool> IsDownloadedBedrockServerCurrentAsync()
+    private async Task<bool> IsDownloadedBedrockServerCurrentAsync()
     {
 
         string? currentVersion = GetDownloadedBedrockServerVersion();
@@ -88,9 +112,41 @@ public class BDSUpdater
         return false;
     }
 
+    private async Task<bool> IsInstalledBedrockServerCurrentAsync(ServerModel server)
+    {
+        if(string.IsNullOrEmpty(_serversPath))
+            throw new Exception("Servers path not set in configuration");
+
+        if(string.IsNullOrEmpty(server.Path))
+            throw new Exception("Server path is not set");
+
+        var destinationPath = Path.Combine(_serversPath, server.Path);
+
+        string? currentVersion = GetInstalledVersion(destinationPath);
+        if (currentVersion == null)
+            return false;
+
+        string? downloadLink = await GetBedrockServerDownloadLinkAsync();
+        if (downloadLink == null)
+            throw new Exception("Could not find download link");
+
+        string? latestVersion = ParseVersionFromFileName(downloadLink);
+        if (latestVersion == null)
+            throw new Exception("Could not parse version from download link");
+
+        if (latestVersion == currentVersion)
+            return true;
+
+        return false;
+    }
+
     private string? GetDownloadedBedrockServerVersion()
     {
-        var files = Directory.GetFiles(_configuration["DownloadPath"], "bedrock-server-*.zip").ToList();
+
+        if(string.IsNullOrEmpty(_downloadPath))
+            throw new Exception("Download path not set in configuration");
+
+        var files = Directory.GetFiles(_downloadPath, "bedrock-server-*.zip").ToList();
         if (files.Count == 0)
             return null;
 
@@ -101,7 +157,24 @@ public class BDSUpdater
         return ParseVersionFromFileName(fileNames.First());
     }
 
-    public async Task<string?> GetBedrockServerDownloadLinkAsync(string platform = "win", bool preview = false)
+    private Task<string> GetDownloadedBedrockServerPathAsync()
+    {
+        if(string.IsNullOrEmpty(_downloadPath))
+            throw new Exception("Download path not set in configuration");
+
+        var files = Directory.GetFiles(_downloadPath, "bedrock-server-*.zip").ToList();
+        if (files.Count == 0)
+            return Task.FromResult(string.Empty);
+
+        var fileNames = files
+            .Select(x => Path.GetFileName(x))
+            .OrderByDescending(x => x);
+
+        var path = Path.Combine(_downloadPath, fileNames.First());
+        return Task.FromResult(path);
+    }
+
+    private async Task<string?> GetBedrockServerDownloadLinkAsync(string platform = "win", bool preview = false)
     {
         var config = Configuration.Default.WithDefaultLoader();
         var context = BrowsingContext.New(config);
@@ -121,5 +194,14 @@ public class BDSUpdater
             return match.Groups[1].Value;
 
         return null;
+    }
+
+    private string? GetInstalledVersion(string serverPath)
+    {
+        var versionFilePath = Path.Combine(serverPath, "version.txt");
+        if (!File.Exists(versionFilePath))
+            return null;
+
+        return File.ReadAllText(versionFilePath);
     }
 }

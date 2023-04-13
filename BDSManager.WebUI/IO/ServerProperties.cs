@@ -6,10 +6,13 @@ namespace BDSManager.WebUI.IO;
 public class ServerProperties
 {
     private readonly IConfiguration _configuration;
+    private readonly string _serversPath = string.Empty;
 
     public ServerProperties(IConfiguration configuration)
     {
         _configuration = configuration;
+        if(!string.IsNullOrEmpty(_configuration["ServersPath"]))
+            _serversPath = _configuration["ServersPath"];
     }
 
     private ServerModel GetServer(string path)
@@ -26,21 +29,27 @@ public class ServerProperties
 
     public List<ServerModel> GetServers()
     {
-        var path = _configuration["ServersPath"];
-        if(path == null)
+        if(string.IsNullOrEmpty(_serversPath))
             throw new Exception("Servers path not set in configuration");
 
         var servers = new List<ServerModel>();
-        Directory.GetDirectories(path).ToList().ForEach(path =>
+        Directory.GetDirectories(_serversPath).ToList().ForEach(serverPath =>
         {
-            servers.Add(GetServer(path));
+            if(string.IsNullOrEmpty(serverPath))
+                return;
+
+            var serverDirectoryName = Path.GetDirectoryName(serverPath);
+            if(string.IsNullOrEmpty(serverDirectoryName))
+                return;
+
+            servers.Add(GetServer(serverDirectoryName));
         });
         return servers;
     }
 
     private void ParseServerProperties(ServerModel server)
     {
-        File.ReadAllLines(Path.Combine(server.Path,"server.properties")).ToList().ForEach(line =>
+        File.ReadAllLines(Path.Combine(_serversPath, server.Path,"server.properties")).ToList().ForEach(line =>
         {
             var split = line.Split('=');
             if (split.Length != 2)
@@ -136,7 +145,7 @@ public class ServerProperties
 
     public void SaveServerProperties(ServerModel server)
     {
-        var path = Path.Combine(server.Path, "server.properties");
+        var path = Path.Combine(_serversPath, server.Path, "server.properties");
         var lines = new List<string>();
         lines.Add($"server-name={server.Options.Name}");
         lines.Add($"server-port={server.Options.Port}");
@@ -170,28 +179,28 @@ public class ServerProperties
 
     private void ParsePermissions(ServerModel server)
     {
-        var serializedPermissions = File.ReadAllText(Path.Combine(server.Path, "permissions.json"));
+        var serializedPermissions = File.ReadAllText(Path.Combine(_serversPath, server.Path, "permissions.json"));
         var permissions = JsonConvert.DeserializeObject<List<PermissionModel>>(serializedPermissions);
         server.Permissions = permissions;
     }
 
     public void SavePermissions(ServerModel server)
     {
-        var path = Path.Combine(server.Path, "permissions.json");
+        var path = Path.Combine(_serversPath, server.Path, "permissions.json");
         var serializedPermissions = JsonConvert.SerializeObject(server.Permissions);
         File.WriteAllText(path, serializedPermissions);
     }
 
     private void ParseAllowList(ServerModel server)
     {
-        var serializedAllowList = File.ReadAllText(Path.Combine(server.Path, "allowlist.json"));
+        var serializedAllowList = File.ReadAllText(Path.Combine(_serversPath, server.Path, "allowlist.json"));
         var allowList = JsonConvert.DeserializeObject<List<AllowPlayerModel>>(serializedAllowList);
         server.AllowList = allowList;
     }
 
     public void SaveAllowList(ServerModel server)
     {
-        var path = Path.Combine(server.Path, "allowlist.json");
+        var path = Path.Combine(_serversPath, server.Path, "allowlist.json");
         var serializedAllowList = JsonConvert.SerializeObject(server.AllowList);
         File.WriteAllText(path, serializedAllowList);
     }

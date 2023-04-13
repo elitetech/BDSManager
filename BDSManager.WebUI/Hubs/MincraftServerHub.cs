@@ -4,9 +4,8 @@ namespace BDSManager.WebUI.Hubs;
 
 public class MinecraftServerHub : Hub
 {
-    public void SendCommand(string command)
+    public void UpdateConsoleOutput(string server, string command)
     {
-        // Call the broadcastMessage method to update clients.
-        Clients.All.SendAsync("broadcastMessage", command);
+        Clients.All.SendAsync("updateConsoleOutput", server, command);
     }
 }

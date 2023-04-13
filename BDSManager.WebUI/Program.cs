@@ -1,5 +1,6 @@
 using BDSManager.WebUI.Services;
 using BDSManager.WebUI.Hubs;
+using BDSManager.WebUI.IO;
 
 
 
@@ -9,6 +10,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<MinecraftServerService>();
+builder.Services.AddSingleton<MinecraftServerHub>();
+builder.Services.AddSingleton<ServerProperties>();
+builder.Services.AddSingleton<BDSUpdater>();
+builder.Services.AddSingleton<OptionsIO>();
 
 var app = builder.Build();
 

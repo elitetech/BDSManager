@@ -1,10 +1,46 @@
 ﻿@page
 @model IndexModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Dashboard";
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <h1 class="display-4">Dashboard</h1>
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Servers</h4>
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Port</th>
+                                <th>Players</th>
+                                <th>Map</th>
+                                <th>Version</th>
+                                <th>Online</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var server in Model.Servers)
+                            {
+                                <tr>
+                                    <td>@server.Options.Name</td>
+                                    <td>@server.Options.Port</td>
+                                    <td>@server.Players</td>
+                                    <td>@server.Options.LevelName</td>
+                                    <td>@server.Version</td>
+                                    <td>@server.Online</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

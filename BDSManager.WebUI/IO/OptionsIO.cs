@@ -7,29 +7,40 @@ namespace BDSManager.WebUI.IO;
 public class OptionsIO
 {
     private readonly string _filepath = "manager.json";
+    public ManagerOptionsModel ManagerOptions = new();
     public bool FirstSetup = false;
 
-    public ManagerOptionsModel LoadOptions()
+    public OptionsIO()
     {
         if (!File.Exists(_filepath))
-        {
-            SaveOptionsFile(new ManagerOptionsModel());
-        }
-        return ReadOptionsFile();
+            SaveOptionsFile();
+        ReadOptionsFile();
     }
 
-    public void SaveOptionsFile(ManagerOptionsModel options)
+    public void SaveOptionsFile()
     {
-        string json = JsonConvert.SerializeObject(options, Formatting.Indented);
+        string json = JsonConvert.SerializeObject(ManagerOptions, Formatting.Indented);
         File.WriteAllText(_filepath, json);
     }
 
-    private ManagerOptionsModel ReadOptionsFile()
+    internal void AddServer(ServerModel server)
+    {
+        ManagerOptions.Servers.Add(server);
+        SaveOptionsFile();
+        ReadOptionsFile();
+    }
+
+    internal void RemoveServer(ServerModel server)
+    {
+        ManagerOptions.Servers.Remove(server);
+        SaveOptionsFile();
+        ReadOptionsFile();
+    }
+
+    private void ReadOptionsFile()
     {
         string json = File.ReadAllText(_filepath);
-        var options = JsonConvert.DeserializeObject<ManagerOptionsModel>(json);
-        if (options.Servers.Count == 0)
-            FirstSetup = true;
-        return options;
+        var _managerOptions = JsonConvert.DeserializeObject<ManagerOptionsModel>(json);
+        FirstSetup = _managerOptions.Servers.Any() ? false : true;
     }
 }
