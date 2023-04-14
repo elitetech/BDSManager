@@ -10,7 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<MinecraftServerService>();
-builder.Services.AddSingleton<MinecraftServerHub>();
+builder.Services.AddSingleton<ConsoleHub>();
+builder.Services.AddSingleton<CommandHub>();
 builder.Services.AddSingleton<ServerProperties>();
 builder.Services.AddSingleton<BDSUpdater>();
 builder.Services.AddSingleton<OptionsIO>();
@@ -33,6 +34,7 @@ app.UseRouting();
 app.UseAuthorization();
 
 app.MapRazorPages();
-app.MapHub<MinecraftServerHub>("/minecraftServerHub");
+app.MapHub<ConsoleHub>("/consoleHub");
+app.MapHub<CommandHub>("/commandHub");
 
 app.Run();

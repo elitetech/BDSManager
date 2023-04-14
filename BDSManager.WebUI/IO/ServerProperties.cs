@@ -6,7 +6,7 @@ namespace BDSManager.WebUI.IO;
 public class ServerProperties
 {
     private readonly IConfiguration _configuration;
-    private readonly string _serversPath = string.Empty;
+    private readonly string _serversPath = "";
 
     public ServerProperties(IConfiguration configuration)
     {

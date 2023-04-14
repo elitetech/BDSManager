@@ -9,13 +9,13 @@ public class MinecraftServerService
     private readonly List<ServerInstance> _serverInstances;
     private readonly string? _serversPath;
     private readonly IConfiguration _configuration;
-    private readonly MinecraftServerHub _minecraftServerHub;
+    private readonly ConsoleHub _consoleHub;
     private readonly int _maxConsoleCacheLines = 100;
 
-    public MinecraftServerService(IConfiguration configuration, MinecraftServerHub minecraftServerHub)
+    public MinecraftServerService(IConfiguration configuration, ConsoleHub consoleHub)
     {
         _configuration = configuration;
-        _minecraftServerHub = minecraftServerHub;
+        _consoleHub = consoleHub;
         _serverInstances = new();
         _serversPath = _configuration["ServersPath"];
     }
@@ -56,7 +56,7 @@ public class MinecraftServerService
     public void StartServerInstance(ServerInstance instance)
     {
         if(instance.ServerProcess == null)
-            throw new Exception("Server instance is null");
+            throw new Exception("Server not running");
 
         instance.ServerProcess.Start();
         instance.ServerProcess.BeginOutputReadLine();
@@ -65,7 +65,7 @@ public class MinecraftServerService
     public void StopServerInstance(ServerInstance instance)
     {
         if(instance.ServerProcess == null)
-            throw new Exception("Server instance is null");
+            throw new Exception("Server not running");
 
         if (!instance.ServerProcess.HasExited)
         {
@@ -74,15 +74,21 @@ public class MinecraftServerService
         }
     }
 
-    public void SendCommandToServerInstance(ServerInstance instance, string command)
+    public async Task<string> SendCommandToServerInstance(string serverPath, string command)
     {
-        if(instance.ServerProcess == null)
-            throw new Exception("Server instance is null");
+        var serverInstance = _serverInstances.FirstOrDefault(x => x.Path == serverPath);
+        if(serverInstance == null)
+            return "Server not running";
+        return await SendCommandToServerInstance(serverInstance, command);
+    }
 
-        if (!instance.ServerProcess.HasExited)
-        {
-            instance.ServerProcess.StandardInput.WriteLine(command);
-        }
+    private Task<string> SendCommandToServerInstance(ServerInstance instance, string command)
+    {
+        if(instance.ServerProcess == null || instance.ServerProcess.HasExited)
+            return Task.FromResult("Server not running");
+
+        instance.ServerProcess.StandardInput.WriteLine(command);
+        return Task.FromResult("sent");
     }
 
     private void ServerProcess_OutputDataReceived(object sender, DataReceivedEventArgs e, ServerInstance instance)
@@ -91,7 +97,7 @@ public class MinecraftServerService
             return;
         
         instance.ConsoleOutput.AddLast(e.Data);
-        _minecraftServerHub.UpdateConsoleOutput(instance.Path, e.Data);
+        _consoleHub.UpdateConsoleOutput(instance.Path, e.Data);
 
         if (instance.ConsoleOutput.Count > _maxConsoleCacheLines)
             instance.ConsoleOutput.RemoveFirst();
