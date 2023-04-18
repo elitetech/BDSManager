@@ -24,6 +24,7 @@ public class ServerProperties
         server.Options = ParseServerProperties(server);
         server.AllowList = ParseAllowList(server);
         server.Permissions = ParsePermissions(server);
+        server.Players = ParsePlayers(server);
         return server;
     }
 
@@ -216,5 +217,19 @@ public class ServerProperties
         var path = Path.Combine(_serversPath, server.Path, "allowlist.json");
         var serializedAllowList = JsonConvert.SerializeObject(server.AllowList);
         File.WriteAllText(path, serializedAllowList);
+    }
+
+    private List<PlayerModel> ParsePlayers(ServerModel server)
+    {
+        var playersPath = Path.Combine(_serversPath, server.Path, "players.json");
+
+        return File.Exists(playersPath) ? JsonConvert.DeserializeObject<List<PlayerModel>>(File.ReadAllText(playersPath)) : new List<PlayerModel>();
+    }
+
+    public void SavePlayers(ServerModel server)
+    {
+        var path = Path.Combine(_serversPath, server.Path, "players.json");
+        var serializedPlayers = JsonConvert.SerializeObject(server.Players);
+        File.WriteAllText(path, serializedPlayers);
     }
 }
