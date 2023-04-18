@@ -38,7 +38,7 @@ public class ServerProperties
             if(string.IsNullOrEmpty(serverPath))
                 return;
 
-            var serverDirectoryName = Path.GetDirectoryName(serverPath);
+            var serverDirectoryName = Path.GetFileName(serverPath);
             if(string.IsNullOrEmpty(serverDirectoryName))
                 return;
 

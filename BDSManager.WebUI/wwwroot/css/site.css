@@ -20,3 +20,12 @@ html {
 body {
   margin-bottom: 60px;
 }
+
+.server-row {
+  cursor: pointer;
+}
+
+.list-group-item.console-line{
+  padding: 0.15rem 0.25rem;
+  border: none;
+}

@@ -11,6 +11,7 @@ const commandHub = new signalR.HubConnectionBuilder()
 
 consoleHub.on("updateConsoleOutput", (server, output) => {
     console.table({ server, output });
+    appendConsoleOutput(server, output);
 });
 
 async function startConsoleHub() {
@@ -34,9 +35,11 @@ async function startCommandHub() {
 }
 
 async function sendCommand(server, command) { // server is the server's directory name
+    server = String(server).padStart(2, '0');
     if (commandHub.state === signalR.HubConnectionState.Connected) {
         commandHub.invoke("SendCommand", server, command)
             .catch((err) => {
+                console.table({ server, command });
                 console.error(err.toString());
         });
     }

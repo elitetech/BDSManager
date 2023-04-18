@@ -14,6 +14,8 @@ public class IndexModel : PageModel
     private readonly MinecraftServerService _minecraftServerService;
     [BindProperty]
     public List<ServerModel> Servers { get; set; } = new();
+    [BindProperty]
+    public List<ServerInstance> ServerInstances { get; set; } = new();
 
     public IndexModel(ILogger<IndexModel> logger, MinecraftServerService minecraftServerService, OptionsIO optionsIO)
     {
@@ -21,6 +23,7 @@ public class IndexModel : PageModel
         _minecraftServerService = minecraftServerService;
         _optionsIO = optionsIO;
         Servers = _optionsIO.ManagerOptions.Servers;
+        ServerInstances = _minecraftServerService.ServerInstances;
     }
 
     public IActionResult OnGet()

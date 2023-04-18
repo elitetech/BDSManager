@@ -6,18 +6,31 @@ namespace BDSManager.WebUI.Services;
 
 public class MinecraftServerService
 {
-    private readonly List<ServerInstance> _serverInstances;
+    public readonly List<ServerInstance> ServerInstances;
     private readonly string? _serversPath;
     private readonly IConfiguration _configuration;
     private readonly ConsoleHub _consoleHub;
-    private readonly int _maxConsoleCacheLines = 100;
+    private readonly int _maxConsoleCacheLines = 1000;
 
     public MinecraftServerService(IConfiguration configuration, ConsoleHub consoleHub)
     {
         _configuration = configuration;
         _consoleHub = consoleHub;
-        _serverInstances = new();
+        ServerInstances = new();
         _serversPath = _configuration["ServersPath"];
+        var processes = Process.GetProcessesByName("bedrock_server");
+        processes.Where(x => !string.IsNullOrEmpty(x.MainModule?.FileName)).ToList().ForEach(x =>
+        {
+            var serverPath = Path.GetDirectoryName(x.MainModule?.FileName);
+            if (serverPath == null)
+                return;
+            var serverInstance = new ServerInstance
+            {
+                Path = serverPath,
+                ServerProcess = x
+            };
+            ServerInstances.Add(serverInstance);
+        });
     }
 
     public ServerInstance CreateServerInstance(ServerModel server)
@@ -36,7 +49,7 @@ public class MinecraftServerService
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = serverPath,
+                    FileName = Path.Combine(serverPath,"bedrock_server.exe"),
                     RedirectStandardInput = true,
                     RedirectStandardOutput = true,
                     UseShellExecute = false,
@@ -49,15 +62,17 @@ public class MinecraftServerService
         {
             ServerProcess_OutputDataReceived(sender, e, serverInstance);
         };
-        _serverInstances.Add(serverInstance);
+        ServerInstances.Add(serverInstance);
         return serverInstance;
     }
 
-    public void StartServerInstance(ServerInstance instance)
+    public void StartServerInstance(ServerModel server)
     {
-        if(instance.ServerProcess == null)
-            throw new Exception("Server not running");
+        var instance = ServerInstances.FirstOrDefault(x => x.Path == server.Path);
+        if(instance == null)
+            instance = CreateServerInstance(server);
 
+        instance.ConsoleOutput.Clear();
         instance.ServerProcess.Start();
         instance.ServerProcess.BeginOutputReadLine();
     }
@@ -71,12 +86,29 @@ public class MinecraftServerService
         {
             instance.ServerProcess.StandardInput.WriteLine("stop");
             instance.ServerProcess.WaitForExit();
+            instance.ConsoleOutput.Clear();
+            ServerInstances.Remove(instance);
         }
+    }
+
+    public void RestartServerInstance(ServerInstance instance)
+    {
+        if(instance.ServerProcess == null)
+            throw new Exception("Server not running");
+
+        if (!instance.ServerProcess.HasExited)
+        {
+            instance.ServerProcess.StandardInput.WriteLine("stop");
+            instance.ServerProcess.WaitForExit();
+            instance.ConsoleOutput.Clear();
+        }
+        instance.ServerProcess.Start();
+        instance.ServerProcess.BeginOutputReadLine();
     }
 
     public async Task<string> SendCommandToServerInstance(string serverPath, string command)
     {
-        var serverInstance = _serverInstances.FirstOrDefault(x => x.Path == serverPath);
+        var serverInstance = ServerInstances.FirstOrDefault(x => x.Path == serverPath);
         if(serverInstance == null)
             return "Server not running";
         return await SendCommandToServerInstance(serverInstance, command);

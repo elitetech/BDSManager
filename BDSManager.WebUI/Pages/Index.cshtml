@@ -4,13 +4,13 @@
 @{
     ViewData["Title"] = "Dashboard";
 }
-
-<div class="text-center">
-    <h1 class="display-4">Dashboard</h1>
+<div>
+    <h3 class="display-6 text-center">Dashboard</h3>
     <div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
+                    <a href="/NewServer" class="btn btn-dark float-end">Add Server</a>
                     <h4>Servers</h4>
                 </div>
                 <div class="card-body">
@@ -28,13 +28,14 @@
                         <tbody>
                             @foreach (var server in Model.Servers)
                             {
-                                <tr>
+                                var online = Model.ServerInstances.Any(x => x.Path == server.Path);
+                                <tr id="@server.Path" class="server-row">
                                     <td>@server.Options.Name</td>
                                     <td>@server.Options.Port</td>
-                                    <td>@server.Players</td>
+                                    <td>@server.Players.Count / @server.Options.MaxPlayers</td>
                                     <td>@server.Options.LevelName</td>
                                     <td>@server.Version</td>
-                                    <td>@server.Online</td>
+                                    <td>@online</td>
                                 </tr>
                             }
                         </tbody>
@@ -44,5 +45,107 @@
         </div>
     </div>
 
-    
+    @foreach (var server in Model.Servers)
+    {
+        var instance = Model.ServerInstances.FirstOrDefault(x => x.Path == server.Path);
+        var online = instance != null;
+        <br />
+        <div id="server-details-@server.Path" class="server-details" style="display: none;">
+            <div class="row">
+                <div class="col-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>@server.Options.Name</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="nav nav-tabs" id="server-tabs-@server.Path" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="actions-tab-@server.Path" 
+                                    data-bs-toggle="tab" data-bs-target="#actions-target-@server.Path" 
+                                    type="button" role="tab" aria-controls="actions-target-@server.Path" 
+                                    aria-selected="true">Actions</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="players-tab-@server.Path" 
+                                    data-bs-toggle="tab" data-bs-target="#players-target-@server.Path" 
+                                    type="button" role="tab" aria-controls="players-target-@server.Path" 
+                                    aria-selected="false">Players</button>
+                                </li>
+                            </ul>
+                            <div class="tab-content">
+                                <div class="tab-pane fade show active" id="actions-target-@server.Path">
+                                    <div class="row">
+                                        <div class="col-12">
+                                            @{
+                                                if (online)
+                                                {
+                                                    <button class="btn btn-dark" onclick="stopServer(@server.Path)" disabled="@(!online)">Stop</button>
+                                                    <button class="btn btn-dark" onclick="restartServer(@server.Path)" disabled="@(!online)">Restart</button>
+                                                }
+                                                else
+                                                {
+                                                    <button class="btn btn-dark" onclick="startServer(@server.Path)" disabled="@online">Start</button>
+                                                }
+                                            }
+                                            
+                                            
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="players-target-@server.Path">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>XUID</th>
+                                                <th>Last Seen</th>
+                                                <th>Online</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var player in server.Players)
+                                            {
+                                                <tr>
+                                                    <td>@player.Name</td>
+                                                    <td>@player.XUID</td>
+                                                    <td>@player.LastSeen.ToString()</td>
+                                                    <td>@player.Online</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Console</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul id="console-window-@server.Path" class="console-content list-group">
+                                @{
+                                    if (online && instance != null)
+                                    {
+                                        foreach (var logEntry in instance.ConsoleOutput)
+                                        {
+                                            <li class="console-line list-group-item">
+                                                <span class="console-line-content">@logEntry</span>
+                                            </li>
+                                        }
+                                    }
+                                }
+                            </ul>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="server-command-@server.Path" />
+                                <button class="btn btn-secondary" onclick="sendCommandToHub(@server.Path)" disabled="@(!online)">Send</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>

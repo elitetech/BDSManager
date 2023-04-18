@@ -1,4 +1,19 @@
-﻿// Please see documentation at https://docs.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
+﻿$(document).ready(function () {
 
-// Write your JavaScript code.
+    // show server-details on tr click
+    $('tr.server-row').click(function () {
+        let path = $(this).attr('id');
+
+        let serverDetails = $(`#server-details-${path}`);
+        if (serverDetails.is(':visible')) {
+            serverDetails.hide();
+        } else {
+            hideAllServerDetails();
+            serverDetails.show();
+        }
+    });
+});
+
+function hideAllServerDetails() {
+    $('.server-details').hide();
+}
