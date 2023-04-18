@@ -20,10 +20,10 @@ public class ServerProperties
         var server = new ServerModel();
         server.Path = path;
         server.Icon = "https://minecraft.net/favicon.ico";
-        server.Version = "";
-        server.Options = new ServerOptionsModel();
-        server.AllowList = new List<AllowPlayerModel>();
-        server.Permissions = new List<PermissionModel>();
+        server.Version = GetVersion(server);
+        server.Options = ParseServerProperties(server);
+        server.AllowList = ParseAllowList(server);
+        server.Permissions = ParsePermissions(server);
         return server;
     }
 
@@ -47,9 +47,21 @@ public class ServerProperties
         return servers;
     }
 
-    private void ParseServerProperties(ServerModel server)
+    private string GetVersion(ServerModel server)
     {
-        File.ReadAllLines(Path.Combine(_serversPath, server.Path,"server.properties")).ToList().ForEach(line =>
+        var versionPath = Path.Combine(_serversPath, server.Path, "version.txt");
+        var version = File.Exists(versionPath) ? File.ReadAllText(versionPath) : "";
+        return version;
+    }
+
+    private ServerOptionsModel ParseServerProperties(ServerModel server)
+    {
+        var serverPropertiesPath = Path.Combine(_serversPath, server.Path,"server.properties");
+        var options = new ServerOptionsModel();
+        if(!File.Exists(serverPropertiesPath))
+            return options;
+            
+        File.ReadAllLines(serverPropertiesPath).ToList().ForEach(line =>
         {
             var split = line.Split('=');
             if (split.Length != 2)
@@ -59,88 +71,89 @@ public class ServerProperties
             switch (key)
             {
                 case "server-name":
-                    server.Options.Name = value;
+                    options.Name = value;
                     break;
                 case "server-port":
-                    server.Options.Port = value;
+                    options.Port = value;
                     break;
                 case "server-portv6":
-                    server.Options.Portv6 = value;
+                    options.Portv6 = value;
                     break;
                 case "max-players":
-                    server.Options.MaxPlayers = value;
+                    options.MaxPlayers = value;
                     break;
                 case "gamemode":
-                    server.Options.Gamemode = value;
+                    options.Gamemode = value;
                     break;
                 case "difficulty":                  
-                    server.Options.Difficulty = value;
+                    options.Difficulty = value;
                     break;
                 case "allow-cheats":
-                    server.Options.AllowCheats = value;
+                    options.AllowCheats = value;
                     break;
                 case "online-mode":
-                    server.Options.OnlineMode = value;
+                    options.OnlineMode = value;
                     break;
                 case "white-list":
-                    server.Options.AllowList = value;
+                    options.AllowList = value;
                     break;
                 case "max-threads":
-                    server.Options.MaxThreads = value;
+                    options.MaxThreads = value;
                     break;
                 case "view-distance":
-                    server.Options.ViewDistance = value;
+                    options.ViewDistance = value;
                     break;
                 case "tick-distance":
-                    server.Options.TickDistance = value;
+                    options.TickDistance = value;
                     break;
                 case "player-idle-timeout":
-                    server.Options.PlayerIdleTimeout = value;
+                    options.PlayerIdleTimeout = value;
                     break;
                 case "level-name":
-                    server.Options.LevelName = value;
+                    options.LevelName = value;
                     break;
                 case "level-seed":
-                    server.Options.LevelSeed = value;
+                    options.LevelSeed = value;
                     break;
                 case "compression-threshold":
-                    server.Options.CompressionThreshold = value;
+                    options.CompressionThreshold = value;
                     break;
                 case "default-player-permission-level":
-                    server.Options.DefaultPlayerPermissionLevel = value;
+                    options.DefaultPlayerPermissionLevel = value;
                     break;
                 case "texturepack-required":
-                    server.Options.TexturePackRequired = value;
+                    options.TexturePackRequired = value;
                     break;
                 case "content-log-file-enabled":
-                    server.Options.ContentLog = value;
+                    options.ContentLog = value;
                     break;
                 case "force-gamemode":
-                    server.Options.ForceGamemode = value;
+                    options.ForceGamemode = value;
                     break;
                 case "server-authoritative-movement":
-                    server.Options.ServerAuthoritativeMovement = value;
+                    options.ServerAuthoritativeMovement = value;
                     break;
                 case "player-movement-score-threshold":
-                    server.Options.PlayerMovementScoreThreshold = value;
+                    options.PlayerMovementScoreThreshold = value;
                     break;
                 case "player-movement-distance-threshold":
-                    server.Options.PlayerMovementDistanceThreshold = value;
+                    options.PlayerMovementDistanceThreshold = value;
                     break;
                 case "player-movement-duration-threshold-in-ms":
-                    server.Options.PlayerMovementDurationThresholdInMs = value;
+                    options.PlayerMovementDurationThresholdInMs = value;
                     break;
                 case "player-movement-action-direction-threshold":
-                    server.Options.PlayerMovementActionDirectionThreshold = value;
+                    options.PlayerMovementActionDirectionThreshold = value;
                     break;
                 case "correct-player-movement":
-                    server.Options.CorrectPlayerMovement = value;
+                    options.CorrectPlayerMovement = value;
                     break;
                 case "server-authoritative-block-breaking":
-                    server.Options.ServerAuthoritativeBlockBreaking = value;
+                    options.ServerAuthoritativeBlockBreaking = value;
                     break;
             }
         });
+        return options;
     }
 
     public void SaveServerProperties(ServerModel server)
@@ -177,11 +190,11 @@ public class ServerProperties
         File.WriteAllLines(path, lines);
     }
 
-    private void ParsePermissions(ServerModel server)
+    private List<PermissionModel> ParsePermissions(ServerModel server)
     {
-        var serializedPermissions = File.ReadAllText(Path.Combine(_serversPath, server.Path, "permissions.json"));
-        var permissions = JsonConvert.DeserializeObject<List<PermissionModel>>(serializedPermissions);
-        server.Permissions = permissions;
+        var permissionsPath = Path.Combine(_serversPath, server.Path, "permissions.json");
+
+        return File.Exists(permissionsPath) ? JsonConvert.DeserializeObject<List<PermissionModel>>(File.ReadAllText(permissionsPath)) : new List<PermissionModel>();
     }
 
     public void SavePermissions(ServerModel server)
@@ -191,11 +204,11 @@ public class ServerProperties
         File.WriteAllText(path, serializedPermissions);
     }
 
-    private void ParseAllowList(ServerModel server)
+    private List<AllowPlayerModel> ParseAllowList(ServerModel server)
     {
-        var serializedAllowList = File.ReadAllText(Path.Combine(_serversPath, server.Path, "allowlist.json"));
-        var allowList = JsonConvert.DeserializeObject<List<AllowPlayerModel>>(serializedAllowList);
-        server.AllowList = allowList;
+        var allowListPath = Path.Combine(_serversPath, server.Path, "allowlist.json");
+
+        return File.Exists(allowListPath) ? JsonConvert.DeserializeObject<List<AllowPlayerModel>>(File.ReadAllText(allowListPath)) : new List<AllowPlayerModel>();
     }
 
     public void SaveAllowList(ServerModel server)
