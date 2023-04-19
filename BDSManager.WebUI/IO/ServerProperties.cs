@@ -25,6 +25,7 @@ public class ServerProperties
         server.AllowList = ParseAllowList(server);
         server.Permissions = ParsePermissions(server);
         server.Players = ParsePlayers(server);
+        server.Addons = ParseAddons(server);
         return server;
     }
 
@@ -235,5 +236,78 @@ public class ServerProperties
         var path = Path.Combine(_serversPath, server.Path, "players.json");
         var serializedPlayers = JsonConvert.SerializeObject(server.Players);
         File.WriteAllText(path, serializedPlayers);
+    }
+
+    private List<WorldPackModel> ParseWorldResourcePacks(ServerModel server)
+    {
+        var worldResourcePacksPath = Path.Combine(_serversPath, server.Path, "worlds", server.Options.LevelName, "world_resource_packs.json");
+
+        return File.Exists(worldResourcePacksPath) ? JsonConvert.DeserializeObject<List<WorldPackModel>>(File.ReadAllText(worldResourcePacksPath)) : new List<WorldPackModel>();
+    }
+
+    public void SaveResourcePacks(ServerModel server)
+    {
+        var path = Path.Combine(_serversPath, server.Path, "worlds", server.Options.LevelName, "world_resource_packs.json");
+        var addons = server.Addons
+            .Where(x => x.Manifest.modules.Any(y => y.type == "resources"))
+            .Select(x => new WorldPackModel { pack_id = x.Manifest.header.uuid, version = x.Manifest.header.version })
+            .ToList();
+        var serializedResourcePacks = JsonConvert.SerializeObject(addons);
+        File.WriteAllText(path, serializedResourcePacks);
+    }
+
+    private List<WorldPackModel> ParseBehaviorResourcePacks(ServerModel server)
+    {
+        var behaviorResourcePacksPath = Path.Combine(_serversPath, server.Path, "worlds", server.Options.LevelName, "world_behavior_packs.json");
+
+        return File.Exists(behaviorResourcePacksPath) ? JsonConvert.DeserializeObject<List<WorldPackModel>>(File.ReadAllText(behaviorResourcePacksPath)) : new List<WorldPackModel>();
+    }
+
+    public void SaveBehaviorPacks(ServerModel server)
+    {
+        var path = Path.Combine(_serversPath, server.Path, "worlds", server.Options.LevelName, "world_behavior_packs.json");
+        var addons = server.Addons
+            .Where(x => x.Manifest.modules.Any(y => y.type != "resources"))
+            .Select(x => new WorldPackModel { pack_id = x.Manifest.header.uuid, version = x.Manifest.header.version })
+            .ToList();
+        var serializedBehaviorPacks = JsonConvert.SerializeObject(addons);
+        File.WriteAllText(path, serializedBehaviorPacks);
+    }
+
+    private List<AddonPackModel> ParseAddons(ServerModel server)
+    {
+        var behaviorPacks = ParseBehaviorResourcePacks(server);
+        var resourcePacks = ParseWorldResourcePacks(server);
+
+        var addons = new List<AddonPackModel>();
+
+        addons.AddRange(GetAddonPacks(Path.Combine(_serversPath, server.Path, "behaviour_packs"), behaviorPacks));
+        addons.AddRange(GetAddonPacks(Path.Combine(_serversPath, server.Path, "resource_packs"), resourcePacks));
+
+        return addons;
+    }
+
+    private List<AddonPackModel> GetAddonPacks(string path, List<WorldPackModel> worldPacks)
+    {
+        var addons = new List<AddonPackModel>();
+        if(!Directory.Exists(path))
+            return addons;
+        foreach(var directory in Directory.GetDirectories(path))
+        {
+            var manifestPath = Path.Combine(directory, "manifest.json");
+            if (!File.Exists(manifestPath))
+                continue;
+            var manifest = JsonConvert.DeserializeObject<ManifestModel>(File.ReadAllText(manifestPath));
+
+            if(!worldPacks.Any(x => x.pack_id == manifest.header.uuid))
+                continue;
+
+            addons.Add(new AddonPackModel
+            {
+                Path = directory,
+                Manifest = manifest
+            });
+        }
+        return addons;
     }
 }

@@ -30,7 +30,7 @@ public class IndexModel : PageModel
     {
         
         if (_optionsIO.FirstSetup)
-            return RedirectToPage("./NewServer");
+            return RedirectToPage("./ManageServer", new { createNew = true });
         
         return Page();
     }

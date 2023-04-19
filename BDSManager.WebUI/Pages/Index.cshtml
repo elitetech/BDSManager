@@ -5,16 +5,24 @@
     ViewData["Title"] = "Dashboard";
 }
 <div>
+    <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-context-menu">
+        <button class="dropdown-item" id="context-server-start">Start</button>
+        <button class="dropdown-item" id="context-server-stop">Stop</button>
+        <button class="dropdown-item" id="context-server-restart">Restart</button>
+        <hr class="dropdown-divider">
+        <button class="dropdown-item" id="context-server-configure">Configure</button>
+        <button class="dropdown-item btn-link btn-danger" id="context-server-remove">Remove</button>
+    </div>
     <h3 class="display-6 text-center">Dashboard</h3>
     <div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <a href="/NewServer" class="btn btn-dark float-end">Add Server</a>
+                    <a asp-page="/ManageServer" asp-route-createNew=true class="btn btn-dark float-end">Add Server</a>
                     <h4>Servers</h4>
                 </div>
                 <div class="card-body">
-                    <table class="table table-responsive table-striped">
+                    <table class="table table-striped">
                         <thead>
                             <tr>
                                 <th>Name</th>
@@ -29,7 +37,7 @@
                             @foreach (var server in Model.Servers)
                             {
                                 var online = Model.ServerInstances.Any(x => x.Path == server.Path);
-                                <tr id="@server.Path" class="server-row">
+                                <tr data-server-path="@server.Path" class="server-row">
                                     <td>@server.Options.Name</td>
                                     <td>@server.Options.Port</td>
                                     <td id="server-player-count-@server.Path">@server.Players.Where(x => x.Online).Count() / @server.Options.MaxPlayers</td>
@@ -58,53 +66,28 @@
                             <h5>@server.Options.Name</h5>
                         </div>
                         <div class="card-body">
-                            <ul class="nav nav-tabs" id="server-tabs-@server.Path" role="tablist">
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="actions-tab-@server.Path" 
-                                    data-bs-toggle="tab" data-bs-target="#actions-target-@server.Path" 
-                                    type="button" role="tab" aria-controls="actions-target-@server.Path" 
-                                    aria-selected="true">Actions</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="players-tab-@server.Path" 
-                                    data-bs-toggle="tab" data-bs-target="#players-target-@server.Path" 
-                                    type="button" role="tab" aria-controls="players-target-@server.Path" 
-                                    aria-selected="false">Players</button>
-                                </li>
-                            </ul>
-                            <div class="tab-content">
-                                <div class="tab-pane fade show active" id="actions-target-@server.Path">
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <button class="btn btn-dark" id="server-start-@server.Path" onclick="startServer(@server.Path)" disabled="@online">Start</button>
-                                            <button class="btn btn-dark" id="server-stop-@server.Path" onclick="stopServer(@server.Path)" disabled="@(!online)">Stop</button>
-                                            <button class="btn btn-dark" id="server-restart-@server.Path" onclick="restartServer(@server.Path)" disabled="@(!online)">Restart</button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="tab-pane fade" id="players-target-@server.Path">
-                                    <table class="table table-responsive table-striped">
-                                        <thead>
+                            <div id="players-target-@server.Path">
+                                <table class="table table-responsive table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>XUID</th>
+                                            <th>Last Seen</th>
+                                            <th>Online</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="server-player-list-@server.Path">
+                                        @foreach (var player in server.Players)
+                                        {
                                             <tr>
-                                                <th>Name</th>
-                                                <th>XUID</th>
-                                                <th>Last Seen</th>
-                                                <th>Online</th>
+                                                <td>@player.Name</td>
+                                                <td>@player.XUID</td>
+                                                <td>@player.LastSeen.ToString()</td>
+                                                <td>@player.Online</td>
                                             </tr>
-                                        </thead>
-                                        <tbody id="server-player-list-@server.Path">
-                                            @foreach (var player in server.Players)
-                                            {
-                                                <tr>
-                                                    <td>@player.Name</td>
-                                                    <td>@player.XUID</td>
-                                                    <td>@player.LastSeen.ToString()</td>
-                                                    <td>@player.Online</td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
+                                        }
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>

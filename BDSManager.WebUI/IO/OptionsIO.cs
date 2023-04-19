@@ -37,6 +37,13 @@ public class OptionsIO
         UpdateFirstRun();
     }
 
+    internal void RefreshServers()
+    {
+        ManagerOptions.Servers.Clear();
+        CheckServersDirectoryForServers();
+        UpdateFirstRun();
+    }
+
     private void UpdateFirstRun() => FirstSetup = ManagerOptions.Servers.Any() ? false : true;
 
     private void CheckServersDirectoryForServers()

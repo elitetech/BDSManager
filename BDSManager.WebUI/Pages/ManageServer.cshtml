@@ -1,0 +1,265 @@
+@page
+@model ManageServerModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers;
+@{
+    ViewData["Title"] = "Create New Server";
+}
+
+<div>
+    <h1 class="display-4">Create New Server</h1>
+    <form method="post" asp-page-handler=@(Model.CreateNew ? "NewServer" : "SaveServer")>
+        <div class="input-group">
+            @{
+                if(Model.CreateNew)
+                {
+                    <button id="create-button" type="submit" class="btn btn-primary">Create</button>
+                }
+                else
+                {
+                    <button id="save-button" type="submit" class="btn btn-primary">Save</button>
+                    <input type="hidden" asp-for="Server.Path" value="@Model.Server.Path" />
+                }
+            }
+        </div>
+        <div class="row">
+            <div class="col-md-4 col-sm-6 col-xs-12">
+                <label class="form-label" asp-for="Server.Options.Name">Name</label>
+                <input type="text" class="form-control" placeholder="Name" asp-for="Server.Options.Name" value="@Model.Server.Options.Name" />
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-12">
+                <label class="form-label" asp-for="Server.Options.LevelName">Level Name</label>
+                <input type="text" class="form-control" placeholder="Level Name" asp-for="Server.Options.LevelName" value="@Model.Server.Options.LevelName" />
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-12">
+                <label class="form-label" asp-for="Server.Options.LevelSeed">Level Seed</label>
+                <input type="text" class="form-control" placeholder="Level Seed" asp-for="Server.Options.LevelSeed" value="@Model.Server.Options.LevelSeed" />
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-12">
+                <label class="form-label" asp-for="Server.Options.Port">Port</label>
+                <input type="text" class="form-control" placeholder="Port" asp-for="Server.Options.Port" value="@Model.Server.Options.Port" />
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-12">
+                <label class="form-label" asp-for="Server.Options.Portv6">Portv6</label>
+                <input type="text" class="form-control" placeholder="Portv6" asp-for="Server.Options.Portv6" value="@Model.Server.Options.Portv6" />
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-12">
+                <label class="form-label" asp-for="Server.Options.MaxPlayers">Max Players</label>
+                <input type="text" class="form-control" placeholder="Max Players" asp-for="Server.Options.MaxPlayers" value="@Model.Server.Options.MaxPlayers" />
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-12">
+                <label class="form-label" asp-for="Server.Options.Gamemode">Gamemode</label>
+                <select class="form-control" asp-for="Server.Options.Gamemode" value="@Model.Server.Options.Gamemode">
+                    <option value="survival">Survival</option>
+                    <option value="creative">Creative</option>
+                    <option value="adventure">Adventure</option>
+                </select>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-12">
+                <label class="form-label" asp-for="Server.Options.Difficulty">Difficulty</label>
+                <select class="form-control" asp-for="Server.Options.Difficulty" value="@Model.Server.Options.Difficulty">
+                    <option value="easy">Easy</option>
+                    <option value="normal">Normal</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-12">
+                <label class="form-label" asp-for="Server.Options.AllowCheats">Allow Cheats</label>
+                <select class="form-control" asp-for="Server.Options.AllowCheats" value="@Model.Server.Options.AllowCheats">
+                    <option value="true">True</option>
+                    <option value="false">False</option>
+                </select>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-12">
+                <label class="form-label" asp-for="Server.Options.OnlineMode">Online Mode</label>
+                <select class="form-control" asp-for="Server.Options.OnlineMode" value="@Model.Server.Options.OnlineMode">
+                    <option value="true">True</option>
+                    <option value="false">False</option>
+                </select>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-12">
+                <label class="form-label" asp-for="Server.Options.AllowList">Allow List</label>
+                <select class="form-control" asp-for="Server.Options.AllowList" value="@Model.Server.Options.AllowList">
+                    <option value="true">True</option>
+                    <option value="false">False</option>
+                </select>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-12">
+                <label class="form-label" asp-for="Server.Options.DefaultPlayerPermissionLevel">Default Player Permission Level</label>
+                <select class="form-control" asp-for="Server.Options.DefaultPlayerPermissionLevel" value="@Model.Server.Options.DefaultPlayerPermissionLevel">
+                    <option value="visitor">Visitor</option>
+                    <option value="member">Member</option>
+                    <option value="operator">Operator</option>
+                </select>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-12">
+                <label class="form-label" asp-for="Server.Options.TexturePackRequired">Texturepack Required</label>
+                <select class="form-control" asp-for="Server.Options.TexturePackRequired" value="@Model.Server.Options.TexturePackRequired">
+                    <option value="true">True</option>
+                    <option value="false">False</option>
+                </select>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-12">
+                <label class="form-label" asp-for="Server.Options.ForceGamemode">Force Game Mode</label>
+                <select class="form-control" asp-for="Server.Options.ForceGamemode" value="@Model.Server.Options.ForceGamemode">
+                    <option value="true">True</option>
+                    <option value="false">False</option>
+                </select>
+            </div>
+        </div>
+        <hr />
+        <!-- Advanced Settings -->
+        <div class="accordion" id="MoreSettings">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#AdvancedSettings" aria-expanded="false" aria-controls="AdvancedSettings">
+                        Advanced Settings
+                    </button>
+                </h2>
+                <div id="AdvancedSettings" class="accordion-collapse collapse" data-bs-parent="#MoreSettings">
+                    <div class="accordion-body">
+                        <div class="row">
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.Options.MaxThreads">Max Threads</label>
+                                <input type="number" class="form-control" placeholder="Max Threads" asp-for="Server.Options.MaxThreads" value="@Model.Server.Options.MaxThreads" />
+                            </div>
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.Options.ViewDistance">View Distance</label>
+                                <input type="number" class="form-control" placeholder="View Distance" asp-for="Server.Options.ViewDistance" value="@Model.Server.Options.ViewDistance" />
+                            </div>
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.Options.TickDistance">Tick Distance</label>
+                                <input type="number" class="form-control" placeholder="Tick Distance" asp-for="Server.Options.TickDistance" value="@Model.Server.Options.TickDistance" />
+                            </div>
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.Options.PlayerIdleTimeout">Player Idle Timeout</label>
+                                <input type="number" class="form-control" placeholder="Player Idle Timeout" asp-for="Server.Options.PlayerIdleTimeout" value="@Model.Server.Options.PlayerIdleTimeout" />
+                            </div>
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.Options.CompressionThreshold">Compression Threshold</label>
+                                <input type="number" class="form-control" placeholder="Compression Threshold" asp-for="Server.Options.CompressionThreshold" value="@Model.Server.Options.CompressionThreshold" />
+                            </div>
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.Options.ContentLog">Content Log</label>
+                                <select class="form-control" asp-for="Server.Options.ContentLog" value="@Model.Server.Options.ContentLog">
+                                    <option value="true">True</option>
+                                    <option value="false">False</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.Options.ServerAuthoritativeMovement">Server Authoritative Movement</label>
+                                <select class="form-control" asp-for="Server.Options.ServerAuthoritativeMovement" value="@Model.Server.Options.ServerAuthoritativeMovement">
+                                    <option value="client-auth">Client Auth</option>
+                                    <option value="server-auth">Server Auth</option>
+                                    <option value="server-auth-with-rewind">Server Auth w/ Rewind</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.Options.PlayerMovementScoreThreshold">Player Movement Score Threshold</label>
+                                <input type="number" class="form-control" placeholder="Player Movement Score Threshold" asp-for="Server.Options.PlayerMovementScoreThreshold" value="@Model.Server.Options.PlayerMovementScoreThreshold" />
+                            </div>
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.Options.PlayerMovementDistanceThreshold">Player Movement Distance Threshold</label>
+                                <input type="number" step="0.1" class="form-control" placeholder="Player Movement Distance Threshold" asp-for="Server.Options.PlayerMovementDistanceThreshold" value="@Model.Server.Options.PlayerMovementDistanceThreshold" />
+                            </div>
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.Options.PlayerMovementDurationThresholdInMs">Player Movement Duration Threshold In Ms</label>
+                                <input type="number" class="form-control" placeholder="Player Movement Duration Threshold In Ms" asp-for="Server.Options.PlayerMovementDurationThresholdInMs" value="@Model.Server.Options.PlayerMovementDurationThresholdInMs" />
+                            </div>
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.Options.PlayerMovementActionDirectionThreshold">Player Movement Action Direction Threshold</label>
+                                <input type="number" step="0.1" class="form-control" placeholder="Player Movement Action Direction Threshold" asp-for="Server.Options.PlayerMovementActionDirectionThreshold" value="@Model.Server.Options.PlayerMovementActionDirectionThreshold" />
+                            </div>
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.Options.CorrectPlayerMovement">Correct Player Movement</label>
+                                <select class="form-control" asp-for="Server.Options.CorrectPlayerMovement" value="@Model.Server.Options.CorrectPlayerMovement">
+                                    <option value="true">True</option>
+                                    <option value="false">False</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.Options.ServerAuthoritativeBlockBreaking">Server Authoritative Block Breaking</label>
+                                <select class="form-control" asp-for="Server.Options.ServerAuthoritativeBlockBreaking" value="@Model.Server.Options.ServerAuthoritativeBlockBreaking">
+                                    <option value="true">True</option>
+                                    <option value="false">False</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item" id="allow-player-list" style="display:none;">
+                <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#AllowList" aria-expanded="false" aria-controls="AllowList">
+                        Allow List
+                    </button>
+                </h2>
+                <div id="AllowList" class="accordion-collapse collapse" data-bs-parent="#MoreSettings">
+                    <div class="accordion-body">
+                        @for (int i = 0; i < Model.Server.AllowList.Count; i++)
+                        {
+                            <div class="row allow-player" data-group-index="0">
+                                <div class="col-lg-4 col-md-3 col-sm-6 col-12">
+                                    <label class="form-label" for="Server.AllowList[@i].name">Gamer Tag</label>
+                                    <input type="text" class="form-control" placeholder="Gamer Tag" name="Server.AllowList[@i].name" value="@Model.Server.AllowList[i].name" />
+                                </div>
+                                <div class="col-lg-4 col-md-3 col-sm-6 col-12">
+                                    <label class="form-label" for="Server.AllowList[@i].xuid">XUID</label>
+                                    <input type="text" class="form-control" placeholder="XUID" name="Server.AllowList[@i].xuid" value="@Model.Server.AllowList[i].xuid" />
+                                </div>
+                                <div class="col-lg-3 col-md-3 col-sm-4 col-10">
+                                    <label class="form-label" for="Server.AllowList[@i].ignoresPlayerLimit">Ignore Player Limit</label>
+                                    <select class="form-control" name="Server.AllowList[@i].ignoresPlayerLimit" value="@Model.Server.AllowList[i].ignoresPlayerLimit">
+                                        <option value="true" selected="@(Model.Server.AllowList[i].ignoresPlayerLimit)">True</option>
+                                        <option value="false" selected="@(!Model.Server.AllowList[i].ignoresPlayerLimit)">False</option>
+                                    </select>
+                                </div>
+                                <div class="col-lg-1 col-md-3 col-sm-2 col-2 position-relative">
+                                    <button type="button" class="btn btn-danger remove-allow-player position-absolute start-0" style="margin-top: 32px; display: none;" onclick="removeAllowPlayerInputGroup(this)"><i class="bi bi-trash"></i></button>
+                                    <button type="button" class="btn btn-success add-allow-player position-absolute end-0" style="margin-top: 32px;" onclick="addAllowPlayerInputGroup()"><i class="bi bi-plus"></i></button>
+                                </div>
+                            </div>
+                        }
+                        @if (!Model.Server.AllowList.Any())
+                        {
+                            <div class="row allow-player" data-group-index="0">
+                                <div class="col-lg-4 col-md-3 col-sm-6 col-12">
+                                    <label class="form-label" for="Server.AllowList[0].name">Gamer Tag</label>
+                                    <input type="text" class="form-control" placeholder="Gamer Tag" name="Server.AllowList[0].name" />
+                                </div>
+                                <div class="col-lg-4 col-md-3 col-sm-6 col-12">
+                                    <label class="form-label" for="Server.AllowList[0].xuid">XUID</label>
+                                    <input type="text" class="form-control" placeholder="XUID" name="Server.AllowList[0].xuid" />
+                                </div>
+                                <div class="col-lg-3 col-md-3 col-sm-4 col-10">
+                                    <label class="form-label" for="Server.AllowList[0].ignoresPlayerLimit">Ignore Player Limit</label>
+                                    <select class="form-control" name="Server.AllowList[0].ignoresPlayerLimit" value="false">
+                                        <option value="true">True</option>
+                                        <option value="false" selected>False</option>
+                                    </select>
+                                </div>
+                                <div class="col-lg-1 col-md-3 col-sm-2 col-2 position-relative">
+                                    <button type="button" class="btn btn-danger remove-allow-player position-absolute start-0" style="margin-top: 32px; display: none;" onclick="removeAllowPlayerInputGroup(this)"><i class="bi bi-trash"></i></button>
+                                    <button type="button" class="btn btn-success add-allow-player position-absolute end-0" style="margin-top: 32px;" onclick="addAllowPlayerInputGroup()"><i class="bi bi-plus"></i></button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#Permissions" aria-expanded="false" aria-controls="Permissions">
+                        Permissions
+                    </button>
+                </h2>
+                <div id="Permissions" class="accordion-collapse collapse" data-bs-parent="#MoreSettings">
+                    <div class="accordion-body">
+                        
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>

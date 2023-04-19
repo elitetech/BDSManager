@@ -10,4 +10,5 @@ public class ServerModel
     public ServerOptionsModel Options { get; set; } = new();
     public List<AllowPlayerModel> AllowList { get; set; } = new();
     public List<PermissionModel> Permissions { get; set; } = new();
+    public List<AddonPackModel> Addons { get; set; } = new();
 }

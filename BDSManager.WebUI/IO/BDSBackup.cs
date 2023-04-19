@@ -4,12 +4,12 @@ namespace BDSManager.WebUI.IO;
 
 public class BDSBackup
 {
-    private readonly ILogger<NewServerModel> _logger;
+    private readonly ILogger<BDSBackup> _logger;
     private readonly IConfiguration _configuration;
     private readonly string? _serversPath;
     private readonly string? _backupsPath;
 
-    public BDSBackup(ILogger<NewServerModel> logger, IConfiguration configuration)
+    public BDSBackup(ILogger<BDSBackup> logger, IConfiguration configuration)
     {
         _logger = logger;
         _configuration = configuration;
