@@ -27,18 +27,20 @@ public class MinecraftServerService
         _appLifetime = appLifetime;
         ServerInstances = new();
         _serversPath = _configuration["ServersPath"];
+        RestartExistingProcesses();
+    }
+
+    private void RestartExistingProcesses()
+    {
         var processes = Process.GetProcessesByName("bedrock_server");
         processes.Where(x => !string.IsNullOrEmpty(x.MainModule?.FileName)).ToList().ForEach(x =>
         {
-            var serverPath = Path.GetDirectoryName(x.MainModule?.FileName);
-            if (serverPath == null)
+            x.Kill();
+            var serverPath = Path.GetFileName(Path.GetDirectoryName(x.MainModule?.FileName));
+            var server = _optionsIO.ManagerOptions.Servers.FirstOrDefault(y => y.Path == serverPath);
+            if (server == null)
                 return;
-            var serverInstance = new ServerInstance
-            {
-                Path = Path.GetFileName(serverPath),
-                ServerProcess = x
-            };
-            ServerInstances.Add(serverInstance);
+            StartServerInstance(server);
         });
 
         _appLifetime.ApplicationStopping.Register(() =>
@@ -46,8 +48,6 @@ public class MinecraftServerService
             ServerInstances.ForEach(x => StopServerInstance(x));
         });
     }
-
-    
 
     public ServerInstance CreateServerInstance(ServerModel server)
     {
@@ -74,10 +74,8 @@ public class MinecraftServerService
             }
         };
         
-        serverInstance.ServerProcess.OutputDataReceived += (sender, e) =>
-        {
-            ServerProcess_OutputDataReceived(sender, e, serverInstance);
-        };
+        serverInstance.ServerProcess.OutputDataReceived += (sender, e) => ServerProcess_OutputDataReceived(sender, e, serverInstance);
+        
         ServerInstances.Add(serverInstance);
         return serverInstance;
     }
