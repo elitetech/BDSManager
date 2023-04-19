@@ -152,6 +152,9 @@ public class ServerProperties
                 case "server-authoritative-block-breaking":
                     options.ServerAuthoritativeBlockBreaking = value;
                     break;
+                case "emit-server-telemetry":
+                    options.EmitServerTelemetry = value;
+                    break;
             }
         });
         return options;
@@ -188,6 +191,7 @@ public class ServerProperties
         lines.Add($"player-movement-action-direction-threshold={server.Options.PlayerMovementActionDirectionThreshold}");
         lines.Add($"correct-player-movement={server.Options.CorrectPlayerMovement}");
         lines.Add($"server-authoritative-block-breaking={server.Options.ServerAuthoritativeBlockBreaking}");
+        lines.Add($"emit-server-telemetry={server.Options.EmitServerTelemetry}");
         File.WriteAllLines(path, lines);
     }
 

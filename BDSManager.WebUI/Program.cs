@@ -9,11 +9,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR();
-builder.Services.AddSingleton<MinecraftServerService>();
 builder.Services.AddSingleton<ConsoleHub>();
 builder.Services.AddSingleton<CommandHub>();
+builder.Services.AddSingleton<MinecraftServerService>();
 builder.Services.AddSingleton<ServerProperties>();
 builder.Services.AddSingleton<BDSUpdater>();
+builder.Services.AddSingleton<BDSAddon>();
 builder.Services.AddSingleton<OptionsIO>();
 
 var app = builder.Build();

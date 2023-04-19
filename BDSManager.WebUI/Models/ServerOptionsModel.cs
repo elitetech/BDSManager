@@ -29,4 +29,5 @@ public class ServerOptionsModel
     public string PlayerMovementActionDirectionThreshold { get; set; } = "0.85";
     public string CorrectPlayerMovement { get; set; } = "false";
     public string ServerAuthoritativeBlockBreaking { get; set; } = "false";
+    public string EmitServerTelemetry { get; set; } = "false";
 }

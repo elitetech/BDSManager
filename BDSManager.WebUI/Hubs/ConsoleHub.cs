@@ -6,6 +6,13 @@ public class ConsoleHub : Hub
 {
     public void UpdateConsoleOutput(string server, string output)
     {
-        Clients.All.SendAsync("updateConsoleOutput", server, output);
+        try
+        {
+            Clients.All.SendAsync("updateConsoleOutput", server, output);
+        }
+        catch
+        {
+            // ignored
+        }
     }
 }
