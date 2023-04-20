@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using BDSManager.WebUI.Models;
 
 namespace BDSManager.WebUI.IO;
@@ -17,7 +18,7 @@ public class BDSBackup
         _backupsPath = _configuration["BackupsPath"];
     }
 
-    public void Backup(ServerModel server)
+    public Task Backup(ServerModel server)
     {
         if(string.IsNullOrEmpty(server.Path))
             throw new Exception("Server path is not set");
@@ -32,9 +33,9 @@ public class BDSBackup
         if (!Directory.Exists(backupPath))
             Directory.CreateDirectory(backupPath);
 
-        var backupName = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-        var backupDir = Path.Combine(backupPath, backupName);
-        Directory.CreateDirectory(backupDir);
+        var backupName = $"FULL_BACKUP_{DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss")}";
+        var backupDirectory = Path.Combine(backupPath, backupName);
+        Directory.CreateDirectory(backupDirectory);
 
         var files = Directory.GetFiles(Path.Combine(_serversPath, server.Path));
         foreach (var file in files)
@@ -45,52 +46,48 @@ public class BDSBackup
             if (fileName == null)
                 continue;
 
-            if(fileName == null
-                || fileName != "server.properties" 
-                || fileName != "permissions.json" 
-                || fileName != "allowlist.json" 
-                || fileName != "worlds"
-                || fileName != "known_valid_packs.json"
-                || fileName != "world_behavior_packs.json"
-                || fileName != "world_resource_packs.json"
-                || fileName != "behavior_packs"
-                || fileName != "resource_packs")
+            var backupFile = false;
+            if(fileName == null)
+                continue;
+            
+            if(fileName == "server.properties" 
+                || fileName == "permissions.json" 
+                || fileName == "allowlist.json" 
+                || fileName == "known_valid_packs.json"
+                || fileName == "world_behavior_packs.json"
+                || fileName == "world_resource_packs.json"
+                || fileName == "players.json")
+                backupFile = true;
+
+            if(!backupFile)
                 continue;
 
-            if(fileName == "worlds")
-            {
-                var worlds = Directory.GetDirectories(Path.Combine(_serversPath, server.Path, "worlds"));
-                foreach (var world in worlds)
-                {
-                    var worldName = Path.GetFileName(world);
-                    if (worldName == null || worldName != server.Options.LevelName)
-                        continue;
-
-                    BackupWorld(Path.Combine(_serversPath, server.Path), worldName, backupDir);
-                }
-            }
-
-            File.Copy(file, Path.Combine(backupDir, fileName));
+            File.Copy(file, Path.Combine(backupDirectory, fileName));
         }
-    }
 
-    private void BackupWorld(string serverPath, string worldName, string backupPath)
-    {
-        var worldPath = Path.Combine(serverPath, "worlds", worldName);
-        var backupWorldPath = Path.Combine(backupPath, "worlds", worldName);
-        Directory.CreateDirectory(backupWorldPath);
-
-        // TODO: Get file list from server service
-         
-
-        var files = Directory.GetFiles(worldPath);
-        foreach (var file in files)
+        var directories = Directory.GetDirectories(Path.Combine(_serversPath, server.Path));
+        foreach(var directory in directories)
         {
-            var fileName = Path.GetFileName(file);
-            if (fileName == null)
+            var dirName = Path.GetFileName(directory);
+            if(dirName == null)
                 continue;
 
-            File.Copy(file, Path.Combine(backupWorldPath, fileName));
+            var backupDir = false;
+            if(dirName == "worlds"
+                || dirName == "behavior_packs"
+                || dirName == "resource_packs")
+                backupDir = true;
+
+            if(!backupDir)
+                continue;
+
+            new DirectoryCopy().Copy(directory, Path.Combine(backupDirectory, dirName), true);
         }
+
+        using var zip = ZipFile.Open(Path.Combine(backupPath, $"{backupName}.zip"), ZipArchiveMode.Create);
+        var archive = zip.CreateEntryFromFile(backupDirectory, backupName);
+        Directory.Delete(backupDirectory, true);
+
+        return Task.CompletedTask;
     }
 }

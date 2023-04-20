@@ -291,21 +291,32 @@ public class ServerProperties
         var addons = new List<AddonPackModel>();
         if(!Directory.Exists(path))
             return addons;
-        foreach(var directory in Directory.GetDirectories(path))
+        
+        foreach(var addonRoot in Directory.GetDirectories(path))
         {
-            var manifestPath = Path.Combine(directory, "manifest.json");
-            if (!File.Exists(manifestPath))
+            var addonRootName = Path.GetFileName(addonRoot);
+            if (addonRootName == "behavior_packs" || addonRootName == "resource_packs")
                 continue;
-            var manifest = JsonConvert.DeserializeObject<ManifestModel>(File.ReadAllText(manifestPath));
-
-            if(!worldPacks.Any(x => x.pack_id == manifest.header.uuid))
-                continue;
-
-            addons.Add(new AddonPackModel
+            
+            
+            var manifestPath = Path.Combine(addonRoot, "manifest.json");
+            foreach(var directory in Directory.GetDirectories(addonRoot))
             {
-                Path = directory,
-                Manifest = manifest
-            });
+                if (!File.Exists(manifestPath))
+                    manifestPath = Path.Combine(directory, "manifest.json");
+                if (!File.Exists(manifestPath))
+                    continue;
+                var manifest = JsonConvert.DeserializeObject<ManifestModel>(File.ReadAllText(manifestPath));
+
+                if(!worldPacks.Any(x => x.pack_id == manifest.header.uuid))
+                    continue;
+
+                addons.Add(new AddonPackModel
+                {
+                    Path = directory,
+                    Manifest = manifest
+                });
+            }
         }
         return addons;
     }

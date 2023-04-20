@@ -1,15 +1,35 @@
+let _commandCache = {};
+
 $(document).ready(function () {
     
     $('tr.server-row').click(function () {
         let path = $(this).attr('data-server-path');
         toggleServerDetails(path);
+        let alreadyActive = $(this).hasClass('table-secondary');
+        $('tr.server-row').removeClass('table-secondary');
+        if(!alreadyActive) $(this).addClass('table-secondary');
     });
     $("tr.server-row").on("contextmenu", function (e) {
         let mousepos = { x: e.pageX, y: e.pageY };
         let path = $(this).attr('data-server-path');
         let online = $(`#server-status-${path}`).text() === "Online" ? true : false;
-        setupContextMenu(path, online);
-        $("#server-context-menu").css({
+        setupServerContextMenu(path, online);
+        let css = {
+            display: "fixed",
+            top: mousepos.y,
+            left: mousepos.x
+        }
+        $("#server-context-menu").css(css).addClass("show");
+        return false;
+    });
+
+    $('tr.player-row').on("contextmenu", function (e) {
+        let mousepos = { x: e.pageX, y: e.pageY };
+        let path = $(this).attr('data-server-path');
+        let xuid = $(this).attr('data-player-xuid');
+        let name = $(this).attr('data-player-name');
+        setupPlayerContextMenu(path, xuid, name);
+        $("#player-context-menu").css({
             display: "fixed",
             top: mousepos.y,
             left: mousepos.x
@@ -17,7 +37,15 @@ $(document).ready(function () {
         return false;
     });
 
-    $(document).click(function () {
+    $('#player-context-menu').on('mouseleave', function () {
+        $('#player-context-whitelist').click();
+        $('#player-context-permissions').click();
+    });
+
+    $(document).click(function (e) {
+        // check if e.target is a child of the context menu
+        if (!$(e.target).closest("#player-context-menu").length) 
+            $("#player-context-menu").removeClass("show");
         $("#server-context-menu").removeClass("show");
     });
 
@@ -31,15 +59,53 @@ $(document).ready(function () {
         $('form#server-form').submit();
     });
 
-    // on change
-    $("#Server_Options_AllowList").change(function () {
-        if($(this).val() === "true") {
-            $("#allow-player-list").show();
-        } else {        
-            $("#allow-player-list").hide();
+    
+    $(document).on('keypress', 'input[id^="server-command-"]', function (e) {
+        if (e.key == "Enter" || e.keyCode == 13) {
+            $(this).closest('.input-group').find('button').click();
+            return false;
+        }
+    });
+
+    $(document).on('keydown', 'input[id^="server-command-"]', function (e) {
+        if (e.key == "ArrowUp" || e.key == "ArrowDown" || e.keyCode == 38 || e.keyCode == 40) {
+            let path = $(this).attr('data-server-path');
+            let command = $(this).val();
+            let commandCache = _commandCache[parseInt(path)];
+            let newCommand = '';
+            if (commandCache) {
+                let index = commandCache.indexOf(command);
+                if(index === -1) 
+                    index = commandCache.length;
+                if (e.key = "ArrowUp" || e.keyCode == 38) {
+                    // up arrow
+                    if (index > 0) {
+                        index--;
+                    }
+                    newCommand = commandCache[index];
+                } else {
+                    // down arrow
+                    if (index < commandCache.length - 1) {
+                        index++;
+                        newCommand = commandCache[index];
+                    }
+                    else {
+                        newCommand = '';
+                    }
+                }
+                $(this).val(newCommand);
+            }
+            return false;
         }
     });
 });
+
+function cacheCommand(path, command) {
+    if (!_commandCache[path]) {
+        _commandCache[path] = [];
+    }
+    _commandCache[path].push(command);
+}
 
 function addAllowPlayerInputGroup() {
     let lastInputGroup = $('.allow-player').last();
@@ -112,13 +178,17 @@ function toggleServerDetails(path) {
         $('.server-details').hide();
         serverDetails.show();
     }
+    
+    let consoleOutput = $(`#console-window-${path}`);
+    consoleOutput.scrollTop(consoleOutput[0].scrollHeight);
 }
 
-function setupContextMenu(path, online){
+function setupServerContextMenu(path, online){
     $("#server-context-menu").attr("data-server-path", path);
     let startServerLink = $('#context-server-start');
     let stopServerLink = $('#context-server-stop');
     let restartServerLink = $('#context-server-restart');
+    let backupServerLink = $('#context-server-backup');
     let configureServerLink = $('#context-server-configure');
     let removeServerLink = $('#context-server-remove');
 
@@ -138,6 +208,10 @@ function setupContextMenu(path, online){
         e.preventDefault();
         restartServer(path);
     });
+    backupServerLink.off("click").click(function(e){
+        e.preventDefault();
+        sendCommand(path, "backup");
+    });
     configureServerLink.off("click").click(function(e){
         e.preventDefault();
         window.location.href = `/ManageServer?path=${path}`;
@@ -145,6 +219,38 @@ function setupContextMenu(path, online){
     removeServerLink.off("click").click(function(e){
         e.preventDefault();
         window.location.href = `/RemoveServer?path=${path}`;
+    });
+}
+
+function setupPlayerContextMenu(path, xuid, name){
+    $("#player-context-menu").attr("data-server-path", path);
+    $("#player-context-menu").attr("data-player-xuid", xuid);
+    $("#player-context-menu").attr("data-player-name", name);
+    let kickPlayerLink = $('#context-player-kick');
+    let whitelistPlayerLink = $('#context-player-whitelist-add');
+    let unwhitelistPlayerLink = $('#context-player-whitelist-remove');
+    let permissionsMember = $('#context-player-permissions-member');
+    let permissionsOperator = $('#context-player-permissions-operator');
+
+    kickPlayerLink.off("click").click(function(e){
+        e.preventDefault();
+        sendCommand(path, `kick ${name}`);
+    });
+    whitelistPlayerLink.off("click").click(function(e){
+        e.preventDefault();
+        sendCommand(path, `whitelist add ${xuid}`);
+    });
+    unwhitelistPlayerLink.off("click").click(function(e){
+        e.preventDefault();
+        sendCommand(path, `whitelist remove ${xuid}`);
+    });
+    permissionsMember.off("click").click(function(e){
+        e.preventDefault();
+        sendCommand(path, `deop ${name}`);
+    });
+    permissionsOperator.off("click").click(function(e){
+        e.preventDefault();
+        sendCommand(path, `op ${name}`);
     });
 }
 
@@ -161,14 +267,19 @@ function restartServer(path){
 }
 
 function sendCommandToHub(path){
-    let command = $(`#server-command-${path}`).val();
+    let input = $(`#server-command-${String(path).padStart(2, '0')}`);
+    let command = input.val();
+    if (!command || command.length === 0) 
+        return;
+    cacheCommand(path, command);
     sendCommand(path, command);
+    input.val("");
 }
 
 function appendConsoleOutput(path, output){
     let consoleOutput = $(`#console-window-${path}`);
     consoleOutput.append(`<li class="console-line list-group-item"><span class="console-line-content">${output}</span></li>`);
-    consoleOutput.scrollTop(consoleOutput.scrollHeight);
+    consoleOutput.scrollTop(consoleOutput[0].scrollHeight);
 }
 
 function processControlOutput(path, output){
@@ -210,14 +321,12 @@ function updatePlayerList(path, playerJson){
     let playerList = $(`#server-player-list-${path}`);
     if(playerList.length > 0)
         playerList.empty();
-
     players.forEach(player => {
+        let lastSeen = player.Online ? "Now" : new Date(player.LastSeen).getDate() == new Date().getDate() ? new Date(player.LastSeen).toLocaleTimeString() : new Date(player.LastSeen).toLocaleDateString();
         playerList.append(`
-            <tr>
+            <tr class="player-row" data-xuid="${player.XUID}" data-player-name="${player.Name}" data-server-path="${path}">
                 <td>${player.Name}</td>
-                <td>${player.XUID}</td>
-                <td>${new Date(player.LastSeen).toDateString()}</td>
-                <td>${player.Online}</td>
+                <td>${lastSeen}</td>
             </tr>`);
     });
     

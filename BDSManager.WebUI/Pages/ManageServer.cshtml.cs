@@ -63,6 +63,14 @@ public class ManageServerModel : PageModel
             
             return Task.FromResult<IActionResult>(Page());
         }
+        else
+        {
+            var maxPort = _optionsIO.ManagerOptions.Servers.Max(x => x.Options.Port);
+            var port = maxPort != null ? int.Parse(maxPort) + 2 : 19132;
+            var portv6 = maxPort != null ? int.Parse(maxPort) + 3 : 19133;
+            Server.Options.Port = port.ToString();
+            Server.Options.Portv6 = portv6.ToString();
+        }
         return Task.FromResult<IActionResult>(Page());
 
     }

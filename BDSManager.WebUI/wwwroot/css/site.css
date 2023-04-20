@@ -29,3 +29,19 @@ body {
   padding: 0.15rem 0.25rem;
   border: none;
 }
+
+.console-content{
+  min-height: 300px;
+  max-height: 450px;
+  overflow-y: scroll;
+}
+
+.server-list{
+  max-height: 300px;
+  overflow-y: scroll;
+}
+
+.player-list{
+  max-height: 450px;
+  overflow-y: scroll;
+}

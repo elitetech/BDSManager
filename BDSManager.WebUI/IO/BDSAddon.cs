@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using BDSManager.WebUI.Models;
 using Newtonsoft.Json;
+using BDSManager.WebUI.IO;
 
 namespace BDSManager.WebUI.IO;
 
@@ -32,9 +33,11 @@ public class BDSAddon
             if (addonRootName == "addons")
                 continue;
 
+            var manifestPath = Path.Combine(_addonsPath, addonRootName, "manifest.json");
             foreach (var directory in Directory.GetDirectories(addonRoot))
             {
-                var manifestPath = Path.Combine(directory, "manifest.json");
+                if(!File.Exists(manifestPath))
+                    manifestPath = Path.Combine(directory, "manifest.json");
                 if(!File.Exists(manifestPath))
                     continue;
 
@@ -103,7 +106,7 @@ public class BDSAddon
         var bpPath = Path.Combine(_serversPath, server.Path, "behavior_packs");
         var rpPath = Path.Combine(_serversPath, server.Path, "resource_packs");
 
-        var isResourcePack = pack.Manifest.modules.Any(x => x.type == "resource");
+        var isResourcePack = pack.Manifest.modules.Any(x => x.type == "resources");
 
         var destinationPath = isResourcePack ? rpPath : bpPath;
         destinationPath = Path.Combine(destinationPath, pack.Path);
@@ -114,7 +117,7 @@ public class BDSAddon
         if(Directory.Exists(destinationPath))
             Directory.Delete(destinationPath, true);
 
-        DirectoryCopy(pack.Path, destinationPath, true);
+        new DirectoryCopy().Copy(Path.Combine(_addonsPath, pack.Path), destinationPath, true);
         
         if(server.Addons.FirstOrDefault(x => x.Manifest.header.uuid == pack.Manifest.header.uuid) is AddonPackModel addon)
             server.Addons.Remove(addon);
@@ -125,51 +128,6 @@ public class BDSAddon
             _serverProperties.SaveResourcePacks(server);
         else
             _serverProperties.SaveBehaviorPacks(server);
-    }
-
-    private void DirectoryCopy(string source, string destination, bool recursive)
-    {
-        DirectoryInfo dir = new DirectoryInfo(Path.Combine(_addonsPath, source));
-        DirectoryInfo[] dirs = dir.GetDirectories();
-
-        // If the source directory does not exist, throw an exception.
-        if (!dir.Exists)
-        {
-            throw new DirectoryNotFoundException(
-                "Source directory does not exist or could not be found: "
-                + dir.FullName);
-        }
-
-        // If the destination directory does not exist, create it.
-        if (!Directory.Exists(destination))
-        {
-            Directory.CreateDirectory(destination);
-        }
-
-        // Get the file contents of the directory to copy.
-        FileInfo[] files = dir.GetFiles();
-
-        foreach (FileInfo file in files)
-        {
-            // Create the path to the new copy of the file.
-            string temppath = Path.Combine(destination, file.Name);
-
-            // Copy the file.
-            file.CopyTo(temppath, false);
-        }
-
-        // If copying subdirectories, copy them and their contents to new location.
-        if (recursive)
-        {
-            foreach (DirectoryInfo subdir in dirs)
-            {
-                // Create the subdirectory.
-                string temppath = Path.Combine(destination, subdir.Name);
-
-                // Copy the subdirectories.
-                DirectoryCopy(subdir.FullName, temppath, recursive);
-            }
-        }
     }
 
     public void UninstallAddon(AddonPackModel pack, ServerModel server)

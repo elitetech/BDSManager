@@ -15,6 +15,7 @@ builder.Services.AddSingleton<MinecraftServerService>();
 builder.Services.AddSingleton<ServerProperties>();
 builder.Services.AddSingleton<BDSUpdater>();
 builder.Services.AddSingleton<BDSAddon>();
+builder.Services.AddSingleton<BDSBackup>();
 builder.Services.AddSingleton<OptionsIO>();
 
 var app = builder.Build();

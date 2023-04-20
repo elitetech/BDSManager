@@ -10,23 +10,27 @@ public class MinecraftServerService
 {
     public readonly List<ServerInstance> ServerInstances;
     private readonly string? _serversPath;
+    private readonly string? _backupsPath;
     private readonly IConfiguration _configuration;
     private readonly ConsoleHub _consoleHub;
     private readonly OptionsIO _optionsIO;
     private readonly ServerProperties _serverProperties;
     private readonly IHostApplicationLifetime _appLifetime;
+    private readonly BDSBackup _bdsBackup;
     private readonly int MAX_LOG_LINES = 1000;
     private readonly int MAX_PROCESS_TIMEOUT = 10000;
 
-    public MinecraftServerService(IConfiguration configuration, ConsoleHub consoleHub, OptionsIO optionsIO, ServerProperties serverProperties, IHostApplicationLifetime appLifetime)
+    public MinecraftServerService(IConfiguration configuration, ConsoleHub consoleHub, OptionsIO optionsIO, ServerProperties serverProperties, BDSBackup bdsBackup, IHostApplicationLifetime appLifetime)
     {
         _configuration = configuration;
         _consoleHub = consoleHub;
         _optionsIO = optionsIO;
         _serverProperties = serverProperties;
+        _bdsBackup = bdsBackup;
         _appLifetime = appLifetime;
         ServerInstances = new();
         _serversPath = _configuration["ServersPath"];
+        _backupsPath = _configuration["BackupsPath"];
         RestartExistingProcesses();
     }
 
@@ -40,12 +44,12 @@ public class MinecraftServerService
             var server = _optionsIO.ManagerOptions.Servers.FirstOrDefault(y => y.Path == serverPath);
             if (server == null)
                 return;
-            StartServerInstance(server);
+            StartServerInstance(server).GetAwaiter();
         });
 
         _appLifetime.ApplicationStopping.Register(() =>
         {
-            ServerInstances.ForEach(x => StopServerInstance(x));
+            ServerInstances.ForEach(x => StopServerInstance(x).GetAwaiter());
         });
     }
 
@@ -80,7 +84,7 @@ public class MinecraftServerService
         return serverInstance;
     }
 
-    public void StartServerInstance(ServerModel server)
+    public Task StartServerInstance(ServerModel server)
     {
         var instance = ServerInstances.FirstOrDefault(x => x.Path == server.Path);
         if(instance == null)
@@ -89,13 +93,13 @@ public class MinecraftServerService
         if(string.IsNullOrEmpty(instance.Path))
         {
             _consoleHub.UpdateConsoleOutput("-1", "CONTROL:start-failed");
-            return;
+            return Task.CompletedTask;
         }
         instance.ConsoleOutput.Clear();
         if(instance.ServerProcess == null)
         {
             _consoleHub.UpdateConsoleOutput(instance.Path, "CONTROL:start-failed");
-            return;
+            return Task.CompletedTask;
         }
         instance.ServerProcess.Start();
         instance.ServerProcess.BeginOutputReadLine();
@@ -105,9 +109,11 @@ public class MinecraftServerService
             _consoleHub.UpdateConsoleOutput(instance.Path, "CONTROL:start-failed");
         else
             _consoleHub.UpdateConsoleOutput(instance.Path, "CONTROL:start-success");
+
+        return Task.CompletedTask;
     }
 
-    public void StopServerInstance(ServerInstance instance)
+    public async Task StopServerInstance(ServerInstance instance)
     {
         if(string.IsNullOrEmpty(instance.Path))
         {
@@ -124,14 +130,14 @@ public class MinecraftServerService
 
         if (!instance.ServerProcess.HasExited)
         {
-            StopServerProcess(instance);
+            await StopServerProcess(instance);
 
             instance.ConsoleOutput.Clear();
             ServerInstances.Remove(instance);
         }
     }
 
-    public void RestartServerInstance(ServerInstance instance)
+    public async Task RestartServerInstance(ServerInstance instance)
     {
         if(string.IsNullOrEmpty(instance.Path))
         {
@@ -148,7 +154,7 @@ public class MinecraftServerService
 
         if (!instance.ServerProcess.HasExited)
         {
-            StopServerProcess(instance);
+            await StopServerProcess(instance);
             instance.ConsoleOutput.Clear();
         }
         instance.ServerProcess.Start();
@@ -173,7 +179,7 @@ public class MinecraftServerService
 
     private void ServerProcess_OutputDataReceived(object sender, DataReceivedEventArgs e, ServerInstance instance)
     {
-        if(string.IsNullOrEmpty(e.Data) || string.IsNullOrWhiteSpace(instance.Path))
+        if(string.IsNullOrEmpty(e.Data) || string.IsNullOrWhiteSpace(instance.Path) || e.Data.Contains("AutoCompaction"))
             return;
         
         ProcessConsoleOutput(instance, e.Data);
@@ -185,10 +191,34 @@ public class MinecraftServerService
             instance.ConsoleOutput.RemoveFirst();
     }
 
-    private void StopServerProcess(ServerInstance instance)
+    internal async Task BackupServer(ServerModel server)
     {
-    if(instance.ServerProcess == null || string.IsNullOrEmpty(instance.Path))
+        if(string.IsNullOrEmpty(_backupsPath))
             return;
+        if(!Directory.Exists(_backupsPath))
+            Directory.CreateDirectory(_backupsPath);
+        
+        var destinationPath = Path.Combine(_backupsPath, server.Path);
+        if(!Directory.Exists(destinationPath))
+            Directory.CreateDirectory(destinationPath);
+        
+        var instance = ServerInstances.FirstOrDefault(x => x.Path == server.Path);
+        var running = instance != null && instance.ServerProcess != null && !instance.ServerProcess.HasExited;
+
+        if (running && instance != null)
+            await StopServerInstance(instance);
+        
+        await _bdsBackup.Backup(server);
+
+        if(running)
+            await StartServerInstance(server);
+        return;
+    }
+
+    private Task StopServerProcess(ServerInstance instance)
+    {
+        if(instance.ServerProcess == null || string.IsNullOrEmpty(instance.Path))
+            return Task.CompletedTask;
         
         if (!instance.ServerProcess.HasExited)
         {
@@ -212,6 +242,7 @@ public class MinecraftServerService
                 _consoleHub.UpdateConsoleOutput(instance.Path, "CONTROL:stop-success");
             }
         }
+        return Task.CompletedTask;
     }
 
     private void ProcessConsoleOutput(ServerInstance instance, string output)

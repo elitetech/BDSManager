@@ -10,8 +10,27 @@
         <button class="dropdown-item" id="context-server-stop">Stop</button>
         <button class="dropdown-item" id="context-server-restart">Restart</button>
         <hr class="dropdown-divider">
+        <button class="dropdown-item" id="context-server-backup">Backup</button>
         <button class="dropdown-item" id="context-server-configure">Configure</button>
         <button class="dropdown-item btn-link btn-danger" id="context-server-remove">Remove</button>
+    </div>
+    <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="player-context-menu">
+        <div class="dropdown dropend">
+            <button class="dropdown-item dropdown-toggle" aria-labelledby="player-context-whitelist-menu" data-bs-toggle="dropdown" aria-expanded="false" id="context-player-whitelist">Whitelist</button>
+            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="player-context-whitelist-menu">
+                <button class="dropdown-item" id="context-player-whitelist-add">Add</button>
+                <button class="dropdown-item" id="context-player-whitelist-remove">Remove</button>
+            </div>
+        </div>
+        <div class="dropdown dropend">
+            <button class="dropdown-item dropdown-toggle" aria-labelledby="player-context-permissions-menu" data-bs-toggle="dropdown" aria-expanded="false" id="context-player-permissions">Permissions</button>
+            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="player-context-permissions-menu">
+                <button class="dropdown-item" id="context-player-permissions-member">Member</button>
+                <button class="dropdown-item" id="context-player-permissions-operator">Operator</button>
+            </div>
+        </div>
+        <hr class="dropdown-divider">
+        <button class="dropdown-item" id="context-player-kick">Kick</button>
     </div>
     <h3 class="display-6 text-center">Dashboard</h3>
     <div class="row">
@@ -21,7 +40,7 @@
                     <a asp-page="/ManageServer" asp-route-createNew=true class="btn btn-dark float-end">Add Server</a>
                     <h4>Servers</h4>
                 </div>
-                <div class="card-body">
+                <div class="card-body server-list">
                     <table class="table table-striped">
                         <thead>
                             <tr>
@@ -60,30 +79,29 @@
         <br />
         <div id="server-details-@server.Path" class="server-details" style="display: none;">
             <div class="row">
-                <div class="col-4">
+                <div class="col-md-4 col-sm-12 col-12" style="padding-bottom: 20px;">
                     <div class="card">
                         <div class="card-header">
                             <h5>@server.Options.Name</h5>
                         </div>
-                        <div class="card-body">
+                        <div class="card-body player-list">
                             <div id="players-target-@server.Path">
                                 <table class="table table-responsive table-striped">
                                     <thead>
                                         <tr>
                                             <th>Name</th>
-                                            <th>XUID</th>
                                             <th>Last Seen</th>
-                                            <th>Online</th>
                                         </tr>
                                     </thead>
                                     <tbody id="server-player-list-@server.Path">
                                         @foreach (var player in server.Players)
                                         {
-                                            <tr>
+                                            var lastSeen = player.Online ? "Now" 
+                                                : player.LastSeen?.ToString("MM/dd/yyyy") == DateTime.Now.ToString("MM/dd/yyyy") ? player.LastSeen?.ToString("hh:mm:ss tt") 
+                                                : player.LastSeen?.ToString("MM/dd/yyyy hh:mm tt");
+                                            <tr class="player-row" data-xuid="@player.XUID" data-player-name="@player.Name" data-server-path="@server.Path">
                                                 <td>@player.Name</td>
-                                                <td>@player.XUID</td>
-                                                <td>@player.LastSeen.ToString()</td>
-                                                <td>@player.Online</td>
+                                                <td>@lastSeen</td>
                                             </tr>
                                         }
                                     </tbody>
@@ -92,7 +110,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-8">
+                <div class="col-md-8 col-sm-12 col-12">
                     <div class="card">
                         <div class="card-header">
                             <h5>Console</h5>
@@ -112,8 +130,8 @@
                                 }
                             </ul>
                             <div class="input-group">
-                                <input type="text" class="form-control" id="server-command-@server.Path" />
-                                <button class="btn btn-secondary" onclick="sendCommandToHub(@server.Path)" disabled="@(!online)">Send</button>
+                                <input type="text" class="form-control" data-server-path="@server.Path" id="server-command-@server.Path" />
+                                <button class="btn btn-secondary" data-server-path="@server.Path" onclick="sendCommandToHub(@server.Path)" disabled="@(!online)">Send</button>
                             </div>
                         </div>
                     </div>

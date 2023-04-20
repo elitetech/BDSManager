@@ -36,6 +36,7 @@ async function startCommandHub() {
 
 async function sendCommand(server, command) { // server is the server's directory name
     server = String(server).padStart(2, '0');
+    console.log("Sending command: " + command + " to server: " + server);
     if (commandHub.state === signalR.HubConnectionState.Connected) {
         commandHub.invoke("SendCommand", server, command)
             .catch((err) => {
