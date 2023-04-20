@@ -16,8 +16,7 @@ public class OptionsIO
     {
         _configuration = configuration;
         _serverProperties = serverProperties;
-        if (!string.IsNullOrEmpty(_configuration["ServersPath"]))
-            _serversPath = _configuration["ServersPath"];
+        _serversPath = _configuration["ServersPath"] ?? string.Empty;
         
         CheckServersDirectoryForServers();
         UpdateFirstRun();

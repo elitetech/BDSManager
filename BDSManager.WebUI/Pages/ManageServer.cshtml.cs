@@ -12,13 +12,21 @@ public class ManageServerModel : PageModel
     public string HeaderString { get; set; } = "New Server";
     [BindProperty]
     public bool CreateNew { get; set; } = false;
+    [BindProperty]
+    public List<AddonPackModel> AvailableAddons { get; set; } = new();
+    [BindProperty]
+    public bool ShowAddons { get; set; } = false;
+    [BindProperty]
+    public IFormFile UploadedFile { get; set; } = null!;
     private readonly ILogger<ManageServerModel> _logger;
     private readonly IConfiguration _configuration;
     private readonly BDSUpdater _bdsUpdater;
     private readonly OptionsIO _optionsIO;
     private readonly ServerProperties _serverProperties;
     private readonly BDSAddon _bdsAddon;
-    private readonly string? _path;
+    private readonly string? _serversPath;
+    private readonly string? _downloadPath;
+    private readonly IWebHostEnvironment _environment;
 
     public ManageServerModel(
         ILogger<ManageServerModel> logger, 
@@ -26,7 +34,8 @@ public class ManageServerModel : PageModel
         BDSUpdater bdsUpdater, 
         OptionsIO optionsIO, 
         ServerProperties serverProperties,
-        BDSAddon bdsAddon
+        BDSAddon bdsAddon,
+        IWebHostEnvironment environment
         )
     {
         _logger = logger;
@@ -35,22 +44,27 @@ public class ManageServerModel : PageModel
         _optionsIO = optionsIO;
         _serverProperties = serverProperties;
         _bdsAddon = bdsAddon;
-        _path = _configuration["ServersPath"];
+        _environment = environment;
+        _serversPath = _configuration["ServersPath"];
+        _downloadPath = _configuration["DownloadPath"];
+        AvailableAddons = _bdsAddon.GetAvailableAddons();
     }
 
-    public IActionResult OnGet(bool createNew = false, string? path = null)
+    public Task<IActionResult> OnGet(bool createNew = false, string? path = null, bool newAddon = false)
     {
-        HeaderString = createNew ? "New Server" : "Edit Server";
+        HeaderString = createNew ? "New Server" : "Configure Server";
         CreateNew = createNew;
+        ShowAddons = newAddon;
         if (!createNew && !string.IsNullOrEmpty(path))
         {
             if(!_optionsIO.ManagerOptions.Servers.Any(x => x.Path == path))
-                return RedirectToPage("./Index");
+                return Task.FromResult<IActionResult>(RedirectToPage("./Index"));
             Server = _optionsIO.ManagerOptions.Servers.FirstOrDefault(x => x.Path == path) ?? new();
             
-            return Page();
+            return Task.FromResult<IActionResult>(Page());
         }
-        return Page();
+        return Task.FromResult<IActionResult>(Page());
+
     }
     public async Task<IActionResult> OnPostNewServer()
     {
@@ -67,7 +81,7 @@ public class ManageServerModel : PageModel
         return RedirectToPage("./Index");
     }
 
-    public Task<IActionResult> OnPostSaveServer()
+    public Task<IActionResult> OnPostSaveServer(string[] ApplyAddons)
     {
         if (string.IsNullOrEmpty(Server.Path))
             return Task.FromResult<IActionResult>(RedirectToPage("./Index"));
@@ -76,21 +90,33 @@ public class ManageServerModel : PageModel
         if (server == null)
             return Task.FromResult<IActionResult>(RedirectToPage("./Index"));
 
+        Server.AllowList.RemoveAll(x => string.IsNullOrEmpty(x.name));
+        Server.AllowList.ForEach(x =>
+        {
+            if(string.IsNullOrEmpty(x.xuid))
+                x.xuid = string.Empty;
+        });
+
+        Server.Permissions.RemoveAll(x => string.IsNullOrEmpty(x.xuid));
+
         _serverProperties.SaveServerProperties(Server);
         _serverProperties.SavePermissions(Server);
         _serverProperties.SaveAllowList(Server);
         _serverProperties.SavePlayers(Server);
-
-        foreach (var addon in Server.Addons)
+        var availableAddons = _bdsAddon.GetAvailableAddons();
+        foreach (var uuid in ApplyAddons)
         {
-            if(server.Addons.Any(x => x.Manifest.header.uuid == addon.Manifest.header.uuid))
+            if(server.Addons.Any(x => x.Manifest.header.uuid == uuid))
+                continue;
+            var addon = availableAddons.FirstOrDefault(x => x.Manifest.header.uuid == uuid);
+            if(addon == null)
                 continue;
             _bdsAddon.InstallAddon(addon, Server);
         }
 
         foreach (var addon in server.Addons)
         {
-            if(Server.Addons.Any(x => x.Manifest.header.uuid == addon.Manifest.header.uuid))
+            if(ApplyAddons.Any(x => x == addon.Manifest.header.uuid))
                 continue;
             _bdsAddon.UninstallAddon(addon, Server);
         }
@@ -99,15 +125,37 @@ public class ManageServerModel : PageModel
         return Task.FromResult<IActionResult>(RedirectToPage("./Index"));
     }
 
+    public async Task<IActionResult> OnPostUploadAddon()
+    {
+        if (UploadedFile == null)
+            return RedirectToPage("./ManageServer", new { path = Server.Path, newAddon = true });
+        if (string.IsNullOrEmpty(_downloadPath))
+            return RedirectToPage("./ManageServer", new { path = Server.Path, newAddon = true });
+        var tempPath = Path.Combine(_downloadPath, "temp", UploadedFile.FileName);
+        if(!Directory.Exists(Path.Combine(_downloadPath, "temp")))
+            Directory.CreateDirectory(Path.Combine(_downloadPath, "temp"));
+
+        using (var fileStream = new FileStream(tempPath, FileMode.Create))
+        {
+            await UploadedFile.CopyToAsync(fileStream);
+        }
+
+        await _bdsAddon.SaveAddon(tempPath);
+
+        System.IO.File.Delete(tempPath);
+        
+        return RedirectToPage("./ManageServer", new { path = Server.Path, newAddon = true });
+    }
+
     private string GetNextServerPath()
     {
-        if(_path == null)
+        if(_serversPath == null)
             throw new Exception("ServersPath is not set in appsettings.json");
         
-        if(!Directory.Exists(_path))
-            Directory.CreateDirectory(_path);
+        if(!Directory.Exists(_serversPath))
+            Directory.CreateDirectory(_serversPath);
 
-        var dirs = Directory.GetDirectories(_path).ToList().OrderByDescending(x => x);
+        var dirs = Directory.GetDirectories(_serversPath).ToList().OrderByDescending(x => x);
         var lastDir = dirs.FirstOrDefault();
         if(lastDir == null)
             return "00";

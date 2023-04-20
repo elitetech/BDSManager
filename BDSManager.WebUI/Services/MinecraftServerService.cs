@@ -85,8 +85,18 @@ public class MinecraftServerService
         var instance = ServerInstances.FirstOrDefault(x => x.Path == server.Path);
         if(instance == null)
             instance = CreateServerInstance(server);
-
+        
+        if(string.IsNullOrEmpty(instance.Path))
+        {
+            _consoleHub.UpdateConsoleOutput("-1", "CONTROL:start-failed");
+            return;
+        }
         instance.ConsoleOutput.Clear();
+        if(instance.ServerProcess == null)
+        {
+            _consoleHub.UpdateConsoleOutput(instance.Path, "CONTROL:start-failed");
+            return;
+        }
         instance.ServerProcess.Start();
         instance.ServerProcess.BeginOutputReadLine();
 
@@ -99,6 +109,11 @@ public class MinecraftServerService
 
     public void StopServerInstance(ServerInstance instance)
     {
+        if(string.IsNullOrEmpty(instance.Path))
+        {
+            _consoleHub.UpdateConsoleOutput("-1", "CONTROL:stop-failed");
+            return;
+        }
         if(instance.ServerProcess == null)
         {
             _consoleHub.UpdateConsoleOutput(instance.Path, "CONTROL:stop-already-stopped");
@@ -118,6 +133,11 @@ public class MinecraftServerService
 
     public void RestartServerInstance(ServerInstance instance)
     {
+        if(string.IsNullOrEmpty(instance.Path))
+        {
+            _consoleHub.UpdateConsoleOutput("-1", "CONTROL:stop-failed");
+            return;
+        }
         if(instance.ServerProcess == null)
         {
             _consoleHub.UpdateConsoleOutput(instance.Path, "CONTROL:stop-already-stopped");
@@ -167,7 +187,7 @@ public class MinecraftServerService
 
     private void StopServerProcess(ServerInstance instance)
     {
-        if(instance.ServerProcess == null)
+    if(instance.ServerProcess == null || string.IsNullOrEmpty(instance.Path))
             return;
         
         if (!instance.ServerProcess.HasExited)
@@ -214,7 +234,7 @@ public class MinecraftServerService
         var playerName = logParts[0].Trim();
         var xuid = logParts[1].Split("xuid:")[1].Trim();
         var server = _optionsIO.ManagerOptions.Servers.FirstOrDefault(x => x.Path == instance.Path);
-        if(server == null)
+        if(server == null || string.IsNullOrEmpty(instance.Path))
             return;
         var player = new PlayerModel
         {

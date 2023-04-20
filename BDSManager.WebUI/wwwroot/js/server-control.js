@@ -23,10 +23,12 @@ $(document).ready(function () {
 
     $("#create-button").click(function() {
         $(this).text("Creating...").attr("disabled", "disabled");
+        $('form#server-form').submit();
     });
 
     $("#save-button").click(function() {
         $(this).text("Saving...").attr("disabled", "disabled");
+        $('form#server-form').submit();
     });
 
     // on change
@@ -61,6 +63,43 @@ function removeAllowPlayerInputGroup(target) {
     let inputGroup = $(target).closest('.allow-player');
     let index = inputGroup.attr('data-group-index');
     if (index > 0) {
+        $(`.allow-player[data-group-index="${index - 1}"]`).find('add-allow-player').show()
+        inputGroup.remove();
+    }
+}
+
+function addPlayerPermissionInputGroup() {
+    let lastInputGroup = $('.player-permission').last();
+    let newInputGroup = lastInputGroup.clone();
+    let index = newInputGroup.attr('data-group-index');
+    index++;
+    newInputGroup.attr('data-group-index', index);
+    newInputGroup.find('input').val('');
+    newInputGroup
+        .find(`input[name="Server.PlayerPermissions[${index - 1}].xuid"]`)
+        .attr('name', `Server.PlayerPermissions[${index}].xuid`);
+    newInputGroup
+        .find(`select[name="Server.PlayerPermissions[${index - 1}].permission"]`)
+        .attr('name', `Server.PlayerPermissions[${index}].permission`)
+        .val('visitor')
+        .find('option')
+        .removeAttr('selected')
+        .first()
+        .next()
+        .attr('selected', 'selected');
+    if(index > 0) {
+        newInputGroup.find('.remove-player-permission').show();
+    }
+    lastInputGroup.find('.add-player-permission').hide();
+    lastInputGroup.after(newInputGroup);
+    lastInputGroup.after($("<hr />"));
+}
+
+function removePlayerPermissionInputGroup(target) {
+    let inputGroup = $(target).closest('.player-permission');
+    let index = inputGroup.attr('data-group-index');
+    if (index > 0) {
+        $(`.player-permission[data-group-index="${index - 1}"]`).find('.add-player-permission').show();
         inputGroup.remove();
     }
 }
@@ -163,15 +202,12 @@ function setOnlineStatus(path, online){
 }
 
 function updatePlayerCount(path, playerCount){
-    console.log(`Server ${path} has ${playerCount} players`);
     $(`#server-player-count-${path}`).text(playerCount);
 }
 
 function updatePlayerList(path, playerJson){
-    console.log(`Server ${path} has players ${playerJson}`);
     let players = JSON.parse(playerJson);
     let playerList = $(`#server-player-list-${path}`);
-    console.log(playerList);
     if(playerList.length > 0)
         playerList.empty();
 
@@ -185,6 +221,47 @@ function updatePlayerList(path, playerJson){
             </tr>`);
     });
     
+}
+
+function addAddon(){
+    // make new modal with file picker
+    let token = $('input[name="__RequestVerificationToken"]').val();
+    let modal = $(`
+        <div class="modal fade" id="addon-modal" tabindex="-1" role="dialog" aria-labelledby="addon-modal-label" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addon-modal-label">Upload Addon</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addon-upload-form" method="post" action="/ManageServer?handler=UploadAddon" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <label for="addon-file">Addon File</label>
+                                <input type="file" class="form-control-file" id="addon-file" name="UploadedFile">
+                                <input type="hidden" name="__RequestVerificationToken" value="${token}">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" id="addon-upload-button">Upload</button>
+                    </div>
+                </div>
+            </div>
+        </div>`);
+    $('body').append(modal);
+    $('#addon-modal').modal('show');
+    $('#addon-modal').on('hidden.bs.modal', function () {
+        // Remove the modal from the DOM when it is hidden
+        $(this).remove();
+    });
+    $('#addon-upload-button').click(function(e){
+        e.preventDefault();
+        $('#addon-upload-form').submit();
+    });
 }
 
 function alertToast(message){

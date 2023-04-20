@@ -2,25 +2,25 @@
 @model ManageServerModel
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers;
 @{
-    ViewData["Title"] = "Create New Server";
+    ViewData["Title"] = Model.HeaderString;
 }
 
 <div>
-    <h1 class="display-4">Create New Server</h1>
-    <form method="post" asp-page-handler=@(Model.CreateNew ? "NewServer" : "SaveServer")>
-        <div class="input-group">
-            @{
-                if(Model.CreateNew)
-                {
-                    <button id="create-button" type="submit" class="btn btn-primary">Create</button>
-                }
-                else
-                {
-                    <button id="save-button" type="submit" class="btn btn-primary">Save</button>
-                    <input type="hidden" asp-for="Server.Path" value="@Model.Server.Path" />
-                }
+    
+    <form method="post" id="server-form" asp-page-handler=@(Model.CreateNew ? "NewServer" : "SaveServer")>
+        <span class="position-relative">
+            <h1 class="display-4">@Model.HeaderString</h1>
+            @if(Model.CreateNew)
+            {
+                <button id="create-button" type="submit" class="btn btn-dark position-absolute end-0 top-0">Create</button>
             }
-        </div>
+            else
+            {
+                <button id="save-button" type="submit" class="btn btn-dark position-absolute end-0 top-0">Save</button>
+                <input type="hidden" asp-for="Server.Path" value="@Model.Server.Path" />
+            }
+        </span>
+        
         <div class="row">
             <div class="col-md-4 col-sm-6 col-xs-12">
                 <label class="form-label" asp-for="Server.Options.Name">Name</label>
@@ -188,7 +188,7 @@
                 </div>
             </div>
 
-            <div class="accordion-item" id="allow-player-list" style="display:none;">
+            <div class="accordion-item" id="allow-player-list" style=@(Model.Server.Options.AllowList == "true" ? "" : "display:none;")>
                 <h2 class="accordion-header">
                     <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#AllowList" aria-expanded="false" aria-controls="AllowList">
                         Allow List
@@ -198,7 +198,7 @@
                     <div class="accordion-body">
                         @for (int i = 0; i < Model.Server.AllowList.Count; i++)
                         {
-                            <div class="row allow-player" data-group-index="0">
+                            <div class="row allow-player" data-group-index="@i">
                                 <div class="col-lg-4 col-md-3 col-sm-6 col-12">
                                     <label class="form-label" for="Server.AllowList[@i].name">Gamer Tag</label>
                                     <input type="text" class="form-control" placeholder="Gamer Tag" name="Server.AllowList[@i].name" value="@Model.Server.AllowList[i].name" />
@@ -219,6 +219,10 @@
                                     <button type="button" class="btn btn-success add-allow-player position-absolute end-0" style="margin-top: 32px;" onclick="addAllowPlayerInputGroup()"><i class="bi bi-plus"></i></button>
                                 </div>
                             </div>
+                            if (i != Model.Server.AllowList.Count - 1)
+                            {
+                                <hr />
+                            }
                         }
                         @if (!Model.Server.AllowList.Any())
                         {
@@ -255,11 +259,95 @@
                 </h2>
                 <div id="Permissions" class="accordion-collapse collapse" data-bs-parent="#MoreSettings">
                     <div class="accordion-body">
-                        
+                        @for(var i = 0; i < Model.Server.Permissions.Count; i++)
+                        {
+                            <div class="row player-permission" data-group-index="@i">
+                                <div class="col-lg-4 col-md-3 col-sm-6 col-12">
+                                    <label class="form-label" for="Server.Permissions[@i].xuid">XUID</label>
+                                    <input type="text" class="form-control" placeholder="XUID" name="Server.Permissions[@i].xuid" />
+                                </div>
+                                <div class="col-lg-3 col-md-3 col-sm-4 col-10">
+                                    <label class="form-label" for="Server.Permissions[@i].permission">Permission Level</label>
+                                    <select class="form-control" name="Server.Permissions[@i].permission" value="@Model.Server.Permissions[i].permission">
+                                        <option value="visitor" selected=@(Model.Server.Permissions[i].permission == "vistor" ? "true" : "false")>Visitor</option>
+                                        <option value="member" selected=@(Model.Server.Permissions[i].permission == "member" ? "true" : "false")>Member</option>
+                                        <option value="operator" selected=@(Model.Server.Permissions[i].permission == "operator" ? "true" : "false")>Operator</option>
+                                    </select>
+                                </div>
+                                <div class="col-lg-1 col-md-3 col-sm-2 col-2 position-relative">
+                                    <button type="button" class="btn btn-danger remove-allow-player position-absolute start-0" style="margin-top: 32px; display: none;" onclick="removeAllowPlayerInputGroup(this)"><i class="bi bi-trash"></i></button>
+                                    <button type="button" class="btn btn-success add-allow-player position-absolute end-0" style="margin-top: 32px;" onclick="addAllowPlayerInputGroup()"><i class="bi bi-plus"></i></button>
+                                </div>
+                            </div>
+                            if (i < Model.Server.Permissions.Count - 1)
+                            {
+                                <hr />
+                            }
+                        }
+                        @if (!Model.Server.Permissions.Any())
+                        {
+                            <div class="row player-permission" data-group-index="0">
+                                <div class="col-lg-6 col-md-6 col-sm-6 col-12">
+                                    <label class="form-label" for="Server.Permissions[0].xuid">XUID</label>
+                                    <input type="text" class="form-control" placeholder="XUID" name="Server.Permissions[0].xuid" />
+                                </div>
+                                <div class="col-lg-4 col-md-4 col-sm-4 col-10">
+                                    <label class="form-label" for="Server.Permissions[0].permission">Permission Level</label>
+                                    <select class="form-control" name="Server.Permissions[0].permission" value="member">
+                                        <option value="visitor">Visitor</option>
+                                        <option value="member" selected>Member</option>
+                                        <option value="operator">Operator</option>
+                                    </select>
+                                </div>
+                                <div class="col-lg-1 col-md-3 col-sm-2 col-2 position-relative">
+                                    <button type="button" class="btn btn-danger remove-player-permission position-absolute start-0" style="margin-top: 32px; display: none;" onclick="removePlayerPermissionInputGroup(this)"><i class="bi bi-trash"></i></button>
+                                    <button type="button" class="btn btn-success add-player-permission position-absolute end-0" style="margin-top: 32px;" onclick="addPlayerPermissionInputGroup()"><i class="bi bi-plus"></i></button>
+                                </div>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
-
+            
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#Addons" aria-expanded="@Model.ShowAddons" aria-controls="Addons">
+                        Addons
+                    </button>
+                </h2>
+                @{
+                    string showAddons = Model.ShowAddons ? "show" : "";
+                }
+                <div id="Addons" class="accordion-collapse collapse @showAddons" data-bs-parent="#MoreSettings">
+                    <div class="accordion-body">
+                        <div class="row">
+                            <div class="col-10">
+                                <h5>Addon</h5>
+                            </div>
+                            <div class="col-2">
+                                <h5>Enabled</h5>
+                            </div>
+                            <button type="button" class="btn btn-success add-addon float-end" onclick="addAddon()"><i class="bi bi-plus"></i></button>
+                        </div>
+                        @for (var i = 0; i < Model.AvailableAddons.Count; i++)
+                        {
+                            <div class="row server-addon">
+                                <div class="col-10">
+                                    @Model.AvailableAddons[i].Manifest.header.name
+                                </div>
+                                <div class="col-2">
+                                    <input type="checkbox" class="form-check-input" name="ApplyAddons[@i]" value="@Model.AvailableAddons[i].Manifest.header.uuid"
+                                    checked=@Model.Server.Addons.Any(x => x.Manifest.header.uuid == Model.AvailableAddons[i].Manifest.header.uuid)  />
+                                </div>
+                            </div>
+                            if (i < Model.AvailableAddons.Count - 1)
+                            {
+                                <hr />
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
         </div>
     </form>
 </div>

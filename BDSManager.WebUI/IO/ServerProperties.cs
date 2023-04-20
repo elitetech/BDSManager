@@ -11,8 +11,7 @@ public class ServerProperties
     public ServerProperties(IConfiguration configuration)
     {
         _configuration = configuration;
-        if(!string.IsNullOrEmpty(_configuration["ServersPath"]))
-            _serversPath = _configuration["ServersPath"];
+        _serversPath = _configuration["ServersPath"] ?? string.Empty;
     }
 
     private ServerModel GetServer(string path)
@@ -281,7 +280,7 @@ public class ServerProperties
 
         var addons = new List<AddonPackModel>();
 
-        addons.AddRange(GetAddonPacks(Path.Combine(_serversPath, server.Path, "behaviour_packs"), behaviorPacks));
+        addons.AddRange(GetAddonPacks(Path.Combine(_serversPath, server.Path, "behavior_packs"), behaviorPacks));
         addons.AddRange(GetAddonPacks(Path.Combine(_serversPath, server.Path, "resource_packs"), resourcePacks));
 
         return addons;
