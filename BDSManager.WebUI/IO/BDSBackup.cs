@@ -88,7 +88,7 @@ public class BDSBackup
             _directoryIO.Copy(directory, Path.Combine(backupDirectory, dirName), true);
         }
         CreateZipFromDirectory(backupPath, backupName, backupDirectory);
-        DeleteDirectory(backupDirectory);
+        Directory.Delete(backupDirectory, true);
         DeleteOlderArchivedBackups(backupPath, server.Backup.BackupKeepCount);
         return Task.CompletedTask;
     }
@@ -109,21 +109,6 @@ public class BDSBackup
             // Add the file to the zip archive
             zip.CreateEntryFromFile(file, relativePath);
         }
-    }
-
-    private void DeleteDirectory(string path)
-    {
-        foreach (var directory in Directory.GetDirectories(path))
-        {
-            DeleteDirectory(directory);
-        }
-
-        foreach (var file in Directory.GetFiles(path))
-        {
-            File.Delete(file);
-        }
-
-        Directory.Delete(path);
     }
 
     private void DeleteOlderArchivedBackups(string path, int maxBackups)

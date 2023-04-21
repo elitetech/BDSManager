@@ -10,14 +10,16 @@ public class BackupAndUpdateService : IHostedService, IDisposable
     private readonly BDSBackup _bdsBackup;
     private readonly BDSUpdater _bdsUpdater;
     private readonly ServerProperties _serverProperties;
+    private readonly MinecraftServerService _minecraftServerService;
     private Timer? _timer;
 
-    public BackupAndUpdateService(OptionsIO optionsIO, BDSBackup bdsBackup, BDSUpdater bdsUpdater, ServerProperties serverProperties)
+    public BackupAndUpdateService(OptionsIO optionsIO, BDSBackup bdsBackup, BDSUpdater bdsUpdater, ServerProperties serverProperties, MinecraftServerService minecraftServerService)
     {
         _optionsIO = optionsIO;
         _bdsBackup = bdsBackup;
         _bdsUpdater = bdsUpdater;
         _serverProperties = serverProperties;
+        _minecraftServerService = minecraftServerService;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -36,11 +38,11 @@ public class BackupAndUpdateService : IHostedService, IDisposable
 
     private void RunJobs(object? state)
     {
-        RunScheduledBackups(state);
-        RunScheduledUpdates(state);
+        RunScheduledBackups();
+        RunScheduledUpdates();
     }
 
-    private void RunScheduledBackups(object? state)
+    private async void RunScheduledBackups()
     {
         foreach (var server in _optionsIO.ManagerOptions.Servers)
         {
@@ -49,14 +51,19 @@ public class BackupAndUpdateService : IHostedService, IDisposable
             
             if (server.Backup.NextBackup == null || server.Backup.NextBackup <= DateTime.Now)
             {
-                _bdsBackup.Backup(server);
+                
+                var instance = _minecraftServerService.ServerInstances.Any(x => x.Path == server.Path) ? _minecraftServerService.ServerInstances.FirstOrDefault(x => x.Path == server.Path) : null;
+                if(instance != null && instance.ServerProcess != null && !instance.ServerProcess.HasExited)
+                    await _minecraftServerService.StopServerInstance(instance);
+
+                await _bdsBackup.Backup(server);
                 server.Backup.NextBackup = DateTime.Now.AddHours(server.Backup.BackupInterval);
                 _serverProperties.SaveBackupSettings(server);
             }
         }
     }
 
-    private async void RunScheduledUpdates(object? state)
+    private async void RunScheduledUpdates()
     {
         foreach (var server in _optionsIO.ManagerOptions.Servers)
         {

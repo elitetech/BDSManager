@@ -19,6 +19,7 @@ public class MinecraftServerService
     private readonly BDSBackup _bdsBackup;
     private readonly int MAX_LOG_LINES = 1000;
     private readonly int MAX_PROCESS_TIMEOUT = 10000;
+    private const int SHUTDOWN_WARNING_TIME = 1000 * 60;
 
     public MinecraftServerService(IConfiguration configuration, ConsoleHub consoleHub, OptionsIO optionsIO, ServerProperties serverProperties, BDSBackup bdsBackup, IHostApplicationLifetime appLifetime)
     {
@@ -215,13 +216,14 @@ public class MinecraftServerService
         return;
     }
 
-    private Task StopServerProcess(ServerInstance instance)
+    private async Task StopServerProcess(ServerInstance instance)
     {
         if(instance.ServerProcess == null || string.IsNullOrEmpty(instance.Path))
-            return Task.CompletedTask;
+            return;
         
         if (!instance.ServerProcess.HasExited)
         {
+            await WarnPlayerOfShutdown(instance);
             try
             {
                 instance.ServerProcess.StandardInput.WriteLine("stop");
@@ -242,7 +244,7 @@ public class MinecraftServerService
                 _consoleHub.UpdateConsoleOutput(instance.Path, "CONTROL:stop-success");
             }
         }
-        return Task.CompletedTask;
+        return;
     }
 
     private void ProcessConsoleOutput(ServerInstance instance, string output)
@@ -258,6 +260,62 @@ public class MinecraftServerService
             ProcessPlayer(instance, output, playerConnected);
             return;
         }
+    }
+
+    private Task WarnPlayerOfShutdown(ServerInstance instance, int timeLeft = SHUTDOWN_WARNING_TIME)
+    {
+        if(instance.ServerProcess == null || instance.ServerProcess.HasExited)
+            return Task.CompletedTask;
+
+        while(instance.ServerProcess != null && !instance.ServerProcess.HasExited)
+        {
+            if(timeLeft <= 0)
+                break;
+            var nextWarning = SendShutdownWarning(instance, timeLeft);
+            if(nextWarning == 0)
+                break;
+            timeLeft -= nextWarning;
+            Thread.Sleep(nextWarning);
+        }
+        return Task.CompletedTask;
+    }
+
+    private int SendShutdownWarning(ServerInstance instance, int timeLeft)
+    {
+        var nextWarning = 0;
+        if(instance.ServerProcess == null || instance.ServerProcess.HasExited || timeLeft <= 0)
+            return nextWarning;
+
+        switch (timeLeft)
+        {
+            case 60000:
+                nextWarning = 30000;
+                break;
+            case 30000:
+                nextWarning = 20000;
+                break;
+            case 10000:
+                nextWarning = 5000;
+                break;
+            case 5000:
+                nextWarning = 2000;
+                break;
+            case 3000:
+                nextWarning = 1000;
+                break;
+            case 2000:
+                nextWarning = 1000;
+                break;
+            case 1000:
+                nextWarning = 1000;
+                break;
+            default:
+                return nextWarning;
+        }
+        var plural = timeLeft / 1000 == 1 ? "" : "s";
+        instance.ServerProcess?.StandardInput.WriteLine($"say Server shutting down in {timeLeft / 1000} second{plural}");
+
+        return nextWarning;
     }
 
     private void ProcessPlayer(ServerInstance instance, string output, bool playerConnected){

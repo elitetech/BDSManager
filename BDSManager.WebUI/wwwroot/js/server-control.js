@@ -10,6 +10,7 @@ $(document).ready(function () {
         if(!alreadyActive) $(this).addClass('table-secondary');
     });
     $("tr.server-row").on("contextmenu", function (e) {
+        e.preventDefault();
         let mousepos = { x: e.pageX, y: e.pageY };
         let path = $(this).attr('data-server-path');
         let online = $(`#server-status-${path}`).text() === "Online" ? true : false;
@@ -24,16 +25,8 @@ $(document).ready(function () {
     });
 
     $('tr.player-row').on("contextmenu", function (e) {
-        let mousepos = { x: e.pageX, y: e.pageY };
-        let path = $(this).attr('data-server-path');
-        let xuid = $(this).attr('data-player-xuid');
-        let name = $(this).attr('data-player-name');
-        setupPlayerContextMenu(path, xuid, name);
-        $("#player-context-menu").css({
-            display: "fixed",
-            top: mousepos.y,
-            left: mousepos.x
-        }).addClass("show");
+        e.preventDefault();
+        setupPlayerContextMenu(e);
         return false;
     });
 
@@ -222,7 +215,11 @@ function setupServerContextMenu(path, online){
     });
 }
 
-function setupPlayerContextMenu(path, xuid, name){
+function setupPlayerContextMenu(event){
+    let mousepos = { x: event.pageX, y: event.pageY };
+    let path = $(this).attr('data-server-path');
+    let xuid = $(this).attr('data-player-xuid');
+    let name = $(this).attr('data-player-name');
     $("#player-context-menu").attr("data-server-path", path);
     $("#player-context-menu").attr("data-player-xuid", xuid);
     $("#player-context-menu").attr("data-player-name", name);
@@ -252,6 +249,12 @@ function setupPlayerContextMenu(path, xuid, name){
         e.preventDefault();
         sendCommand(path, `op ${name}`);
     });
+    
+    $("#player-context-menu").css({
+        display: "fixed",
+        top: mousepos.y,
+        left: mousepos.x
+    }).addClass("show");
 }
 
 function startServer(path){
@@ -327,11 +330,17 @@ function updatePlayerList(path, playerJson){
         playerList.empty();
     players.forEach(player => {
         let lastSeen = player.Online ? "Now" : new Date(player.LastSeen).getDate() == new Date().getDate() ? new Date(player.LastSeen).toLocaleTimeString() : new Date(player.LastSeen).toLocaleDateString();
-        playerList.append(`
-            <tr class="player-row" data-xuid="${player.XUID}" data-player-name="${player.Name}" data-server-path="${path}">
-                <td>${player.Name}</td>
-                <td>${lastSeen}</td>
-            </tr>`);
+        let playerRow = $(`
+        <tr class="player-row" data-xuid="${player.XUID}" data-player-name="${player.Name}" data-server-path="${path}">
+            <td>${player.Name}</td>
+            <td>${lastSeen}</td>
+        </tr>`);
+        playerList.append(playerRow);
+        $(playerRow).on("contextmenu", function(e){
+            e.preventDefault();
+            setupPlayerContextMenu(e);
+            return false;
+        });
     });
     
 }
