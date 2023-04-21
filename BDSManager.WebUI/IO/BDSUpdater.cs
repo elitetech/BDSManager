@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using AngleSharp;
 using AngleSharp.Html.Parser;
 using BDSManager.WebUI.Models;
+using BDSManager.WebUI.Services;
 
 namespace BDSManager.WebUI.IO;
 
@@ -10,14 +11,16 @@ public class BDSUpdater
 {
     private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
     private readonly ServerProperties _serverProperties;
+    private readonly MinecraftServerService _minecraftServerService;
     private readonly string _url = "https://www.minecraft.net/en-us/download/server/bedrock/";
     private readonly string? _downloadPath;
     private readonly string? _serversPath;
 
-    public BDSUpdater(Microsoft.Extensions.Configuration.IConfiguration configuration, ServerProperties serverProperties)
+    public BDSUpdater(Microsoft.Extensions.Configuration.IConfiguration configuration, ServerProperties serverProperties, MinecraftServerService minecraftServerService)
     {
         _configuration = configuration;
         _serverProperties = serverProperties;
+        _minecraftServerService = minecraftServerService;
         _downloadPath = _configuration["DownloadPath"];
         _serversPath = _configuration["ServersPath"];
     }
@@ -50,11 +53,21 @@ public class BDSUpdater
         var filePath = await IsDownloadedBedrockServerCurrentAsync() ? await GetDownloadedBedrockServerPathAsync() : await DownloadBedrockServerAsync();
         if(string.IsNullOrEmpty(filePath))
             throw new Exception("Could not download bedrock server");
+        
+        var instance = _minecraftServerService.ServerInstances.FirstOrDefault(x => x.Path == server.Path);
+        if(instance?.ServerProcess != null && !instance.ServerProcess.HasExited)
+            await _minecraftServerService.StopServerInstance(instance);
         ZipFile.ExtractToDirectory(filePath, destinationPath);
 
         _serverProperties.SaveServerProperties(server);
         _serverProperties.SavePermissions(server);
         _serverProperties.SaveAllowList(server);
+        _serverProperties.SavePlayers(server);
+        _serverProperties.SaveResourcePacks(server);
+        _serverProperties.SaveBehaviorPacks(server);
+        _serverProperties.SaveBackupSettings(server);
+        _serverProperties.SaveUpdateSettings(server);
+
 
         var version = ParseVersionFromFileName(filePath);
         File.WriteAllText(Path.Combine(destinationPath, "version.txt"), version);

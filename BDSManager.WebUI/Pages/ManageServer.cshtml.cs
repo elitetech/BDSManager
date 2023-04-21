@@ -111,6 +111,9 @@ public class ManageServerModel : PageModel
         _serverProperties.SavePermissions(Server);
         _serverProperties.SaveAllowList(Server);
         _serverProperties.SavePlayers(Server);
+        _serverProperties.SaveBackupSettings(Server);
+        _serverProperties.SaveUpdateSettings(Server);
+
         var availableAddons = _bdsAddon.GetAvailableAddons();
         foreach (var uuid in ApplyAddons)
         {

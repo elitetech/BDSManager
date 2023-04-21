@@ -25,6 +25,8 @@ public class ServerProperties
         server.Permissions = ParsePermissions(server);
         server.Players = ParsePlayers(server);
         server.Addons = ParseAddons(server);
+        server.Backup = ParseBackupSettings(server);
+        server.Update = ParseUpdateSettings(server);
         return server;
     }
 
@@ -235,6 +237,34 @@ public class ServerProperties
         var path = Path.Combine(_serversPath, server.Path, "players.json");
         var serializedPlayers = JsonConvert.SerializeObject(server.Players);
         File.WriteAllText(path, serializedPlayers);
+    }
+
+    public void SaveBackupSettings(ServerModel server)
+    {
+        var path = Path.Combine(_serversPath, server.Path, "backup.json");
+        var serializedBackupSettings = JsonConvert.SerializeObject(server.Backup);
+        File.WriteAllText(path, serializedBackupSettings);
+    }
+
+    private BackupModel ParseBackupSettings(ServerModel server)
+    {
+        var backupPath = Path.Combine(_serversPath, server.Path, "backup.json");
+
+        return File.Exists(backupPath) ? JsonConvert.DeserializeObject<BackupModel>(File.ReadAllText(backupPath)) : new BackupModel();
+    }
+
+    public void SaveUpdateSettings(ServerModel server)
+    {
+        var path = Path.Combine(_serversPath, server.Path, "update.json");
+        var serializedUpdateSettings = JsonConvert.SerializeObject(server.Update);
+        File.WriteAllText(path, serializedUpdateSettings);
+    }
+
+    private UpdateModel ParseUpdateSettings(ServerModel server)
+    {
+        var updatePath = Path.Combine(_serversPath, server.Path, "update.json");
+
+        return File.Exists(updatePath) ? JsonConvert.DeserializeObject<UpdateModel>(File.ReadAllText(updatePath)) : new UpdateModel();
     }
 
     private List<WorldPackModel> ParseWorldResourcePacks(ServerModel server)

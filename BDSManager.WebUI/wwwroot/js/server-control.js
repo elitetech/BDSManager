@@ -266,6 +266,10 @@ function restartServer(path){
     sendCommand(path, "restart");
 }
 
+function checkForUpdates(path){
+    sendCommand(path, "update");
+}
+
 function sendCommandToHub(path){
     let input = $(`#server-command-${String(path).padStart(2, '0')}`);
     let command = input.val();

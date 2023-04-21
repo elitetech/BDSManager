@@ -56,7 +56,9 @@ public class BDSBackup
                 || fileName == "known_valid_packs.json"
                 || fileName == "world_behavior_packs.json"
                 || fileName == "world_resource_packs.json"
-                || fileName == "players.json")
+                || fileName == "players.json"
+                || fileName == "backup.json"
+                || fileName == "update.json")
                 backupFile = true;
 
             if(!backupFile)
@@ -83,11 +85,56 @@ public class BDSBackup
 
             new DirectoryCopy().Copy(directory, Path.Combine(backupDirectory, dirName), true);
         }
-
-        using var zip = ZipFile.Open(Path.Combine(backupPath, $"{backupName}.zip"), ZipArchiveMode.Create);
-        var archive = zip.CreateEntryFromFile(backupDirectory, backupName);
-        Directory.Delete(backupDirectory, true);
-
+        CreateZipFromDirectory(backupPath, backupName, backupDirectory);
+        DeleteDirectory(backupDirectory);
+        DeleteOlderArchivedBackups(backupPath, server.Backup.BackupKeepCount);
         return Task.CompletedTask;
+    }
+
+    private void CreateZipFromDirectory(string backupPath, string backupName, string backupDirectory)
+    {
+        string zipFileName = Path.Combine(backupPath, $"{backupName}.zip");
+
+        // Create a new zip archive
+        using var zip = ZipFile.Open(zipFileName, ZipArchiveMode.Create);
+
+        // Iterate through the files in the directory
+        foreach (var file in Directory.GetFiles(backupDirectory, "*", SearchOption.AllDirectories))
+        {
+            // Get the relative path of the file within the backupDirectory
+            string relativePath = file.Substring(backupDirectory.Length + 1);
+
+            // Add the file to the zip archive
+            zip.CreateEntryFromFile(file, relativePath);
+        }
+    }
+
+    private void DeleteDirectory(string path)
+    {
+        foreach (var directory in Directory.GetDirectories(path))
+        {
+            DeleteDirectory(directory);
+        }
+
+        foreach (var file in Directory.GetFiles(path))
+        {
+            File.Delete(file);
+        }
+
+        Directory.Delete(path);
+    }
+
+    private void DeleteOlderArchivedBackups(string path, int maxBackups)
+    {
+        var files = Directory.GetFiles(path);
+        if (files.Length <= maxBackups)
+            return;
+
+        var filesToDelete = files.Length - maxBackups;
+        var filesToDeleteList = files.OrderBy(f => f).Take(filesToDelete).ToList();
+        foreach (var file in filesToDeleteList)
+        {
+            File.Delete(file);
+        }
     }
 }

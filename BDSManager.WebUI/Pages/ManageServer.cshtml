@@ -313,7 +313,50 @@
                     </div>
                 </div>
             </div>
-            
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#UpdateBackup" aria-expanded="false" aria-controls="UpdateBackup">
+                        Update & Backup Settings
+                    </button>
+                </h2>
+                <div id="UpdateBackup" class="accordion-collapse collapse" data-bs-parent="#MoreSettings">
+                    <div class="accordion-body">
+                        <div class="row">
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.Backup.BackupEnabled">Enable Automatic Backups</label>
+                                <select class="form-control" asp-for="Server.Backup.BackupEnabled" value="@Model.Server.Backup.BackupEnabled">
+                                    <option value="true" selected=@(Model.Server.Backup.BackupEnabled ? "true" : "false")>Yes</option>
+                                    <option value="false" selected=@(Model.Server.Backup.BackupEnabled ? "false" : "true")>No</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.Backup.BackupInterval">Backup Frequency (hours)</label>
+                                <input type="number" class="form-control" asp-for="Server.Backup.BackupInterval" value="@Model.Server.Backup.BackupInterval" />
+                            </div>
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.Backup.BackupKeepCount">Number of Backups to Keep</label>
+                                <input type="number" class="form-control" asp-for="Server.Backup.BackupKeepCount" value="@Model.Server.Backup.BackupKeepCount" />
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.Update.UpdateEnabled">Enable Automatic Updates</label>
+                                <select class="form-control" asp-for="Server.Update.UpdateEnabled" value="@Model.Server.Update.UpdateEnabled">
+                                    <option value="true" selected=@(Model.Server.Update.UpdateEnabled ? "true" : "false")>Yes</option>
+                                    <option value="false" selected=@(Model.Server.Update.UpdateEnabled ? "false" : "true")>No</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.Update.UpdateInterval">Update Check Frequency (hours)</label>
+                                <input type="number" class="form-control" asp-for="Server.Update.UpdateInterval" value="@Model.Server.Update.UpdateInterval" />
+                            </div>
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <button type="button" class="btn btn-dark" style="margin-top: 32px;" onclick="checkForUpdates(@Model.Server.Path)">Update Now</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#Addons" aria-expanded="@Model.ShowAddons" aria-controls="Addons">

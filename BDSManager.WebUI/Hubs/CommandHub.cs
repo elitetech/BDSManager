@@ -10,13 +10,16 @@ public class CommandHub : Hub
     private readonly OptionsIO _optionsIO;
     private readonly ServerProperties _serverProperties;
     private readonly ConsoleHub _consoleHub;
+    private readonly BDSUpdater _bdsUpdater;
+    private readonly string[] _controlCommands = new string[] {"stop", "restart", "start", "backup", "update"};
 
-    public CommandHub(MinecraftServerService minecraftServerService, OptionsIO optionsIO, ConsoleHub consoleHub, ServerProperties serverProperties)
+    public CommandHub(MinecraftServerService minecraftServerService, OptionsIO optionsIO, ConsoleHub consoleHub, ServerProperties serverProperties, BDSUpdater bdsUpdater)
     {
         _minecraftServerService = minecraftServerService;
         _optionsIO = optionsIO;
         _consoleHub = consoleHub;
         _serverProperties = serverProperties;
+        _bdsUpdater = bdsUpdater;
     }
     public async Task SendCommand(string path, string command)
     {
@@ -46,19 +49,24 @@ public class CommandHub : Hub
                     _consoleHub.UpdateConsoleOutput(path, "Server not found");
                 else
                     await _minecraftServerService.StartServerInstance(server);
+            else if(command == "backup")
+            {
+                if(server == null)
+                    _consoleHub.UpdateConsoleOutput(path, "Server not found");
+                else
+                    await _minecraftServerService.BackupServer(server);
+            }
+            else if(command == "update")
+            {
+                if(server == null)
+                    _consoleHub.UpdateConsoleOutput(path, "Server not found");
+                else
+                    await _bdsUpdater.UpdateBedrockServerAsync(server);
+            }
             return;
         }
 
-        if(command == "backup")
-        {
-            var server = _optionsIO.ManagerOptions.Servers.FirstOrDefault(x => x.Path == path);
-            if(server == null){
-                _consoleHub.UpdateConsoleOutput(path, "Server not found");
-                return;
-            }
-            await _minecraftServerService.BackupServer(server);
-            return;
-        }
+        
 
         var result = await _minecraftServerService.SendCommandToServerInstance(path, command);
         if(result != "sent")
