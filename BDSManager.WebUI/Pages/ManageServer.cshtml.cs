@@ -2,6 +2,7 @@ using BDSManager.WebUI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using BDSManager.WebUI.IO;
+using System.IO.Compression;
 
 namespace BDSManager.WebUI.Pages;
 public class ManageServerModel : PageModel
@@ -22,6 +23,7 @@ public class ManageServerModel : PageModel
     private readonly IConfiguration _configuration;
     private readonly BDSUpdater _bdsUpdater;
     private readonly OptionsIO _optionsIO;
+    private readonly DirectoryIO _directoryIO;
     private readonly ServerProperties _serverProperties;
     private readonly BDSAddon _bdsAddon;
     private readonly string? _serversPath;
@@ -35,13 +37,15 @@ public class ManageServerModel : PageModel
         OptionsIO optionsIO, 
         ServerProperties serverProperties,
         BDSAddon bdsAddon,
-        IWebHostEnvironment environment
+        IWebHostEnvironment environment,
+        DirectoryIO directoryIO
         )
     {
         _logger = logger;
         _configuration = configuration;
         _bdsUpdater = bdsUpdater;
         _optionsIO = optionsIO;
+        _directoryIO = directoryIO;
         _serverProperties = serverProperties;
         _bdsAddon = bdsAddon;
         _environment = environment;
@@ -136,12 +140,76 @@ public class ManageServerModel : PageModel
         return Task.FromResult<IActionResult>(RedirectToPage("./Index"));
     }
 
-    public async Task<IActionResult> OnPostUploadAddon()
+    public async Task<IActionResult> OnPostUploadWorld(string path, string levelName)
     {
+        var routeOptions = string.IsNullOrEmpty(path) 
+            ? new { createNew = true, path = string.Empty, newAddon = false } 
+            : new { createNew = false, path = path, newAddon = false };
+
+        if(string.IsNullOrEmpty(path))
+            return RedirectToPage("./Index");
+        
+        var server = _optionsIO.ManagerOptions.Servers.FirstOrDefault(x => x.Path == path);
+        if(server == null)
+            return RedirectToPage("./Index");
+        
         if (UploadedFile == null)
-            return RedirectToPage("./ManageServer", new { path = Server.Path, newAddon = true });
+            return RedirectToPage("./ManageServer", routeOptions);
         if (string.IsNullOrEmpty(_downloadPath))
-            return RedirectToPage("./ManageServer", new { path = Server.Path, newAddon = true });
+            return RedirectToPage("./ManageServer", routeOptions);
+        if (string.IsNullOrEmpty(_serversPath))
+            throw new Exception("ServersPath is not set in appsettings.json");
+        var destinationPath = Path.Combine(_serversPath, server.Path, "worlds", levelName);
+        if(!string.IsNullOrEmpty(_serversPath))
+            Directory.CreateDirectory(_serversPath);
+        
+
+        var tempPath = Path.Combine(_downloadPath, "temp", UploadedFile.FileName);
+        if(!Directory.Exists(Path.Combine(_downloadPath, "temp")))
+            Directory.CreateDirectory(Path.Combine(_downloadPath, "temp"));
+
+        using (var zipStream = new FileStream(tempPath, FileMode.Create))
+        {
+            await UploadedFile.CopyToAsync(zipStream);
+        }
+
+        if(Directory.Exists(destinationPath))
+            Directory.Delete(destinationPath, true);
+
+        using (var fileStream = new FileStream(tempPath, FileMode.Open, FileAccess.Read))
+        {
+            using (var zip = new ZipArchive(fileStream))
+            {
+                zip.ExtractToDirectory(destinationPath);
+            }
+        }
+        
+        
+        server.Options.LevelName = levelName;
+        _serverProperties.SaveServerProperties(server);
+        _serverProperties.SaveAllowList(server);
+        _serverProperties.SavePermissions(server);
+        _serverProperties.SavePlayers(server);
+        _serverProperties.SaveBackupSettings(server);
+        _serverProperties.SaveUpdateSettings(server);
+        _optionsIO.RefreshServers();
+        
+        foreach(var file in Directory.GetFiles(Path.Combine(_downloadPath, "temp")))
+            System.IO.File.Delete(file);
+        return RedirectToPage("./ManageServer", routeOptions);
+    }
+
+    public async Task<IActionResult> OnPostUploadAddon(string? path)
+    {
+        var routeOptions = string.IsNullOrEmpty(path) 
+            ? new { createNew = true, path = string.Empty, newAddon = true } 
+            : new { createNew = false, path = path, newAddon = true };
+
+        var server = _optionsIO.ManagerOptions.Servers.FirstOrDefault(x => x.Path == path);
+        if (UploadedFile == null)
+            return RedirectToPage("./ManageServer", routeOptions);
+        if (string.IsNullOrEmpty(_downloadPath))
+            return RedirectToPage("./ManageServer", routeOptions);
         var tempPath = Path.Combine(_downloadPath, "temp", UploadedFile.FileName);
         if(!Directory.Exists(Path.Combine(_downloadPath, "temp")))
             Directory.CreateDirectory(Path.Combine(_downloadPath, "temp"));
@@ -152,10 +220,38 @@ public class ManageServerModel : PageModel
         }
 
         await _bdsAddon.SaveAddon(tempPath);
+        _optionsIO.RefreshServers();
 
-        System.IO.File.Delete(tempPath);
+        foreach(var file in Directory.GetFiles(Path.Combine(_downloadPath, "temp")))
+            System.IO.File.Delete(file);
         
-        return RedirectToPage("./ManageServer", new { path = Server.Path, newAddon = true });
+        return RedirectToPage("./ManageServer", routeOptions);
+    }
+
+    public Task<IActionResult> OnPostRemoveWorld(string path, string levelName)
+    {
+        var routeOptions = string.IsNullOrEmpty(path) 
+            ? new { createNew = true, path = string.Empty, newAddon = false } 
+            : new { createNew = false, path = path, newAddon = false };
+
+        if(string.IsNullOrEmpty(_serversPath))
+            throw new Exception("ServersPath is not set in appsettings.json");
+
+        if (string.IsNullOrEmpty(path))
+            return Task.FromResult<IActionResult>(RedirectToPage("./Index"));
+
+        var server = _optionsIO.ManagerOptions.Servers.FirstOrDefault(x => x.Path == path);
+        if (server == null)
+            return Task.FromResult<IActionResult>(RedirectToPage("./Index"));
+
+        var worldPath = Path.Combine(_serversPath, server.Path, "worlds", levelName);
+        if(Directory.Exists(worldPath))
+            Directory.Delete(worldPath, true);
+
+        server.Worlds = _serverProperties.ListWorlds(server);
+        _optionsIO.RefreshServers();
+
+        return Task.FromResult<IActionResult>(RedirectToPage("./ManageServer", routeOptions));
     }
 
     private string GetNextServerPath()

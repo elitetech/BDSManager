@@ -7,13 +7,15 @@ public class BDSBackup
 {
     private readonly ILogger<BDSBackup> _logger;
     private readonly IConfiguration _configuration;
+    private readonly DirectoryIO _directoryIO;
     private readonly string? _serversPath;
     private readonly string? _backupsPath;
 
-    public BDSBackup(ILogger<BDSBackup> logger, IConfiguration configuration)
+    public BDSBackup(ILogger<BDSBackup> logger, IConfiguration configuration, DirectoryIO directoryIO)
     {
         _logger = logger;
         _configuration = configuration;
+        _directoryIO = directoryIO;
         _serversPath = _configuration["ServersPath"];
         _backupsPath = _configuration["BackupsPath"];
     }
@@ -83,7 +85,7 @@ public class BDSBackup
             if(!backupDir)
                 continue;
 
-            new DirectoryCopy().Copy(directory, Path.Combine(backupDirectory, dirName), true);
+            _directoryIO.Copy(directory, Path.Combine(backupDirectory, dirName), true);
         }
         CreateZipFromDirectory(backupPath, backupName, backupDirectory);
         DeleteDirectory(backupDirectory);

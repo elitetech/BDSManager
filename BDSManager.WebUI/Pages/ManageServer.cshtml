@@ -351,12 +351,52 @@
                                 <input type="number" class="form-control" asp-for="Server.Update.UpdateInterval" value="@Model.Server.Update.UpdateInterval" />
                             </div>
                             <div class="col-md-4 col-sm-6 col-xs-12">
-                                <button type="button" class="btn btn-dark" style="margin-top: 32px;" onclick="checkForUpdates(@Model.Server.Path)">Update Now</button>
+                                <button type="button" class="btn btn-dark" style="margin-top: 32px;" onclick="checkForUpdates('@Model.Server.Path')">Update Now</button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+            @if(!string.IsNullOrEmpty(Model.Server.Path))
+            {
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#Worlds" aria-expanded="@Model.ShowAddons" aria-controls="Worlds">
+                            Worlds
+                        </button>
+                    </h2>
+                    <div id="Worlds" class="accordion-collapse collapse" data-bs-parent="#MoreSettings">
+                        <div class="accordion-body">
+                            <div class="row">
+                                <div class="col-9">
+                                    <h5>Name</h5>
+                                </div>
+                                <div class="col-2">
+                                    <h5>Active</h5>
+                                </div>
+                                <div class="col-1">
+                                    <button type="button" class="btn btn-success add-world float-end" onclick="addWorld('@Model.Server.Path')" data-bs-toggle="tooltip" data-bs-placement="left" title="Upload New World"><i class="bi bi-plus"></i></button>
+                                </div>
+                            </div>
+                            @foreach (var world in Model.Server.Worlds)
+                            {
+                                var worldEnabled = world == Model.Server.Options.LevelName ? "Yes" : "No";
+                                <div class="row">
+                                    <div class="col-9">
+                                        @world
+                                    </div>
+                                    <div class="col-2">
+                                        @worldEnabled
+                                    </div>
+                                    <div class="col-1">
+                                        <button type="button" class="btn btn-danger remove-world float-end" onclick="removeWorld('@Model.Server.Path', '@world')" data-bs-toggle="tooltip" data-bs-placement="left" title="Delete World"><i class="bi bi-trash"></i></button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#Addons" aria-expanded="@Model.ShowAddons" aria-controls="Addons">
@@ -376,7 +416,7 @@
                                 <h5>Enabled</h5>
                             </div>
                             <div class="col-1">
-                                <button type="button" class="btn btn-success add-addon float-end" onclick="addAddon()" data-bs-toggle="tooltip" data-bs-placement="left" title="Upload New Addon"><i class="bi bi-plus"></i></button>
+                                <button type="button" class="btn btn-success add-addon float-end" onclick="addAddon('@Model.Server.Path')" data-bs-toggle="tooltip" data-bs-placement="left" title="Upload New Addon"><i class="bi bi-plus"></i></button>
                             </div>
                         </div>
                         @for (var i = 0; i < Model.AvailableAddons.Count; i++)

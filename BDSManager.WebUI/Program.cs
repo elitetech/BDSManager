@@ -17,6 +17,7 @@ builder.Services.AddSingleton<BDSUpdater>();
 builder.Services.AddSingleton<BDSAddon>();
 builder.Services.AddSingleton<BDSBackup>();
 builder.Services.AddSingleton<OptionsIO>();
+builder.Services.AddSingleton<DirectoryIO>();
 builder.Services.AddHostedService<BackupAndUpdateService>();
 
 var app = builder.Build();

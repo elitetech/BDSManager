@@ -336,7 +336,7 @@ function updatePlayerList(path, playerJson){
     
 }
 
-function addAddon(){
+function addAddon(path){
     // make new modal with file picker
     let token = $('input[name="__RequestVerificationToken"]').val();
     let modal = $(`
@@ -354,6 +354,7 @@ function addAddon(){
                             <div class="form-group">
                                 <label for="addon-file">Addon File</label>
                                 <input type="file" class="form-control-file" id="addon-file" name="UploadedFile">
+                                <input type="hidden" name="path" value="${path}">
                                 <input type="hidden" name="__RequestVerificationToken" value="${token}">
                             </div>
                         </form>
@@ -374,6 +375,90 @@ function addAddon(){
     $('#addon-upload-button').click(function(e){
         e.preventDefault();
         $('#addon-upload-form').submit();
+    });
+}
+
+function addWorld(path){
+    let token = $('input[name="__RequestVerificationToken"]').val();
+    let modal = $(`
+        <div class="modal fade" id="world-modal" tabindex="-1" role="dialog" aria-labelledby="world-modal-label" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="world-modal-label">Upload World</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="world-upload-form" method="post" action="/ManageServer?handler=UploadWorld" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <label for="world-name">Level Name</label>
+                                <input type="text" class="form-control" id="world-name" name="levelName">
+                                <label for="world-file">World File</label>
+                                <input type="file" class="form-control-file" id="world-file" name="UploadedFile">
+                                <input type="hidden" name="path" value="${path}">
+                                <input type="hidden" name="__RequestVerificationToken" value="${token}">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" id="world-upload-button">Upload</button>
+                    </div>
+                </div>
+            </div>
+        </div>`);
+    $('body').append(modal);
+    $('#world-modal').modal('show');
+    $('#world-modal').on('hidden.bs.modal', function () {
+        // Remove the modal from the DOM when it is hidden
+        $(this).remove();
+    });
+    $('#world-upload-button').click(function(e){
+        e.preventDefault();
+        $('#world-upload-form').submit();
+    });
+}
+
+function removeWorld(path, worldName){
+    let token = $('input[name="__RequestVerificationToken"]').val();
+    let modal = $(`
+        <div class="modal fade" id="world-modal" tabindex="-1" role="dialog" aria-labelledby="world-modal-label" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="world-modal-label">Remove World</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="world-remove-form" method="post" action="/ManageServer?handler=RemoveWorld" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <input type="hidden" name="levelName" value="${worldName}" readonly>
+                                <input type="hidden" name="path" value="${path}">
+                                <input type="hidden" name="__RequestVerificationToken" value="${token}">
+                            </div>
+                            <span class="alert alert-warning" role="alert">Are you sure you want to remove the world "${worldName}"?</span>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-danger" id="world-remove-button">Remove</button>
+                    </div>
+                </div>
+            </div>
+        </div>`);
+    $('body').append(modal);
+    $('#world-modal').modal('show');
+    $('#world-modal').on('hidden.bs.modal', function () {
+        // Remove the modal from the DOM when it is hidden
+        $(this).remove();
+    });
+    $('#world-remove-button').click(function(e){
+        e.preventDefault();
+        $('#world-remove-form').submit();
     });
 }
 

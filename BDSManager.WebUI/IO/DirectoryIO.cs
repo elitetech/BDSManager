@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace BDSManager.WebUI.IO;
 
-public class DirectoryCopy
+public class DirectoryIO
 {
     internal void Copy(string source, string destination, bool recursive)
     {

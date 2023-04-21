@@ -6,6 +6,7 @@ public class ServerModel
     public string Icon { get; set; } = "https://minecraft.net/favicon.ico";
     public string Online { get; set; } = "Offline";
     public string? Version { get; set; }
+    public List<string> Worlds { get; set; } = new();
     public UpdateModel Update { get; set; } = new();
     public BackupModel Backup { get; set; } = new();
     public List<PlayerModel> Players { get; set; } = new();

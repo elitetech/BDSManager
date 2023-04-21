@@ -27,7 +27,30 @@ public class ServerProperties
         server.Addons = ParseAddons(server);
         server.Backup = ParseBackupSettings(server);
         server.Update = ParseUpdateSettings(server);
+        server.Worlds = ListWorlds(server);
         return server;
+    }
+
+    internal List<string> ListWorlds(ServerModel server)
+    {
+        var worlds = new List<string>();
+        var worldsPath = Path.Combine(_serversPath, server.Path, "worlds");
+        if(!Directory.Exists(worldsPath))
+            return worlds;
+        
+        Directory.GetDirectories(worldsPath).ToList().ForEach(worldPath =>
+        {
+            if(string.IsNullOrEmpty(worldPath))
+                return;
+
+            var worldDirectoryName = Path.GetFileName(worldPath);
+            if(string.IsNullOrEmpty(worldDirectoryName))
+                return;
+
+            if(worldDirectoryName != "worlds")
+                worlds.Add(worldDirectoryName);
+        });
+        return worlds;
     }
 
     public List<ServerModel> GetServers()

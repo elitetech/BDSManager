@@ -9,15 +9,17 @@ public class BDSAddon
 {
     private readonly IConfiguration _configuration;
     private readonly ServerProperties _serverProperties;
+    private readonly DirectoryIO _directoryIO;
     private readonly string _addonsPath = string.Empty;
     private readonly string _serversPath = string.Empty;
     private readonly List<AddonPackModel> _addonPacks = new();
     private readonly string[] _validExtensions = {".zip", ".mcpack", ".mcaddon"};
 
-    public BDSAddon(IConfiguration configuration, ServerProperties serverProperties)
+    public BDSAddon(IConfiguration configuration, ServerProperties serverProperties, DirectoryIO directoryIO)
     {
         _configuration = configuration;
         _serverProperties = serverProperties;
+        _directoryIO = directoryIO;
         _serversPath = _configuration.GetChildren().FirstOrDefault(x => x.Key == "ServersPath")?.Value ?? string.Empty;
         _addonsPath = configuration.GetChildren().FirstOrDefault(x => x.Key == "AddonsPath")?.Value ?? string.Empty;
         SetupAvailableAddons();
@@ -117,7 +119,7 @@ public class BDSAddon
         if(Directory.Exists(destinationPath))
             Directory.Delete(destinationPath, true);
 
-        new DirectoryCopy().Copy(Path.Combine(_addonsPath, pack.Path), destinationPath, true);
+        _directoryIO.Copy(Path.Combine(_addonsPath, pack.Path), destinationPath, true);
         
         if(server.Addons.FirstOrDefault(x => x.Manifest.header.uuid == pack.Manifest.header.uuid) is AddonPackModel addon)
             server.Addons.Remove(addon);
