@@ -6,4 +6,5 @@ public class BackupModel
     public int BackupInterval { get; set; } = 24;
     public int BackupKeepCount { get; set; } = 5;
     public DateTime? NextBackup { get; set; }
+    public DateTime? LastBackup { get; set; }
 }

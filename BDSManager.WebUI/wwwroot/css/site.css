@@ -45,3 +45,9 @@ body {
   max-height: 450px;
   overflow-y: scroll;
 }
+
+.server-icon{
+  width: 32px;
+  height: 32px;
+  margin-right: 10px;
+}

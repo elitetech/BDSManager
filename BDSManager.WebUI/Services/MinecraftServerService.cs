@@ -32,10 +32,10 @@ public class MinecraftServerService
         ServerInstances = new();
         _serversPath = _configuration["ServersPath"];
         _backupsPath = _configuration["BackupsPath"];
-        RestartExistingProcesses();
+        RestartExistingProcesses().GetAwaiter();
     }
 
-    private void RestartExistingProcesses()
+    private async Task RestartExistingProcesses()
     {
         var processes = Process.GetProcessesByName("bedrock_server");
         processes.Where(x => !string.IsNullOrEmpty(x.MainModule?.FileName)).ToList().ForEach(x =>
@@ -109,7 +109,12 @@ public class MinecraftServerService
         if (instance.ServerProcess.HasExited)
             _consoleHub.UpdateConsoleOutput(instance.Path, "CONTROL:start-failed");
         else
+        {
             _consoleHub.UpdateConsoleOutput(instance.Path, "CONTROL:start-success");
+            server.LastStarted = DateTime.Now;
+            _serverProperties.SaveLastStarted(server);
+            _optionsIO.RefreshServers();
+        }
 
         return Task.CompletedTask;
     }
@@ -180,7 +185,7 @@ public class MinecraftServerService
 
     private void ServerProcess_OutputDataReceived(object sender, DataReceivedEventArgs e, ServerInstance instance)
     {
-        if(string.IsNullOrEmpty(e.Data) || string.IsNullOrWhiteSpace(instance.Path) || e.Data.Contains("AutoCompaction"))
+        if(string.IsNullOrEmpty(e.Data) || string.IsNullOrWhiteSpace(instance.Path) || HideFromConsole(e.Data))
             return;
         
         ProcessConsoleOutput(instance, e.Data);
@@ -190,6 +195,25 @@ public class MinecraftServerService
 
         if (instance.ConsoleOutput.Count > MAX_LOG_LINES)
             instance.ConsoleOutput.RemoveFirst();
+    }
+
+    private bool HideFromConsole(string line)
+    {
+        line = RemoveTimestamp(line).Trim();
+        if (line.ToLower().Contains("telemetry") 
+            || line.ToLower().Contains("src-server") 
+            || line.Contains("autocompaction")
+            || string.IsNullOrEmpty(line))
+            return true;
+        return false;
+    }
+    
+    private string RemoveTimestamp(string line)
+    {
+        var index = line.IndexOf(']');
+        if (index > 0)
+            return line.Substring(index + 1);
+        return line;
     }
 
     internal async Task BackupServer(ServerModel server)
@@ -213,6 +237,8 @@ public class MinecraftServerService
 
         if(running)
             await StartServerInstance(server);
+
+        await _bdsBackup.ArchiveBackup(server);
         return;
     }
 
@@ -264,7 +290,11 @@ public class MinecraftServerService
 
     private Task WarnPlayerOfShutdown(ServerInstance instance, int timeLeft = SHUTDOWN_WARNING_TIME)
     {
-        if(instance.ServerProcess == null || instance.ServerProcess.HasExited)
+        if(instance.ServerProcess == null 
+            || instance.ServerProcess.HasExited 
+            || _optionsIO.ManagerOptions.Servers
+                .FirstOrDefault(x => x.Path == instance.Path)?.Players
+                .All(x => x.Online == false) == true)
             return Task.CompletedTask;
 
         while(instance.ServerProcess != null && !instance.ServerProcess.HasExited)

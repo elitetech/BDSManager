@@ -11,4 +11,8 @@
     <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.1.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PublishExclude Include="bds\**" />
+  </ItemGroup>
+
 </Project>

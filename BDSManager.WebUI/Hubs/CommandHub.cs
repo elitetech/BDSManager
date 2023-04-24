@@ -26,7 +26,7 @@ public class CommandHub : Hub
         if(string.IsNullOrEmpty(path) || string.IsNullOrEmpty(command))
             return;
 
-        if(command == "stop" || command == "restart" || command == "start")
+        if(command == "stop" || command == "restart" || command == "start" || command == "backup" || command == "update")
         {
             var instance = _minecraftServerService.ServerInstances.FirstOrDefault(x => x.Path == path);
             var server = _optionsIO.ManagerOptions.Servers.FirstOrDefault(x => x.Path == path);

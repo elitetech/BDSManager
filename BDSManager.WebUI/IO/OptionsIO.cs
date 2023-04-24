@@ -50,6 +50,9 @@ public class OptionsIO
         if (string.IsNullOrEmpty(_serversPath))
             throw new Exception("Servers path not set in configuration");
 
+        if (!Directory.Exists(_serversPath))
+            Directory.CreateDirectory(_serversPath);
+
         Directory.GetDirectories(_serversPath).ToList().ForEach(serverPath =>
         {
             var servers = _serverProperties.GetServers();

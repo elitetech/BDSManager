@@ -13,7 +13,7 @@ $(document).ready(function () {
         e.preventDefault();
         let mousepos = { x: e.pageX, y: e.pageY };
         let path = $(this).attr('data-server-path');
-        let online = $(`#server-status-${path}`).text() === "Online" ? true : false;
+        let online = $(`#server-status-${path}`).text() === "Offline" ? false : true;
         setupServerContextMenu(path, online);
         let css = {
             display: "fixed",
@@ -26,7 +26,7 @@ $(document).ready(function () {
 
     $('tr.player-row').on("contextmenu", function (e) {
         e.preventDefault();
-        setupPlayerContextMenu(e);
+        setupPlayerContextMenu(this, e);
         return false;
     });
 
@@ -51,6 +51,11 @@ $(document).ready(function () {
         $(this).text("Saving...").attr("disabled", "disabled");
         $('form#server-form').submit();
     });
+
+    setUptime();
+    setInterval(function () {
+        setUptime();
+    }, 1000);
 
     
     $(document).on('keypress', 'input[id^="server-command-"]', function (e) {
@@ -92,6 +97,34 @@ $(document).ready(function () {
         }
     });
 });
+
+function setUptime() {
+    var serverRows = $('tr.server-row');
+    serverRows.each(function () {
+        let status = $(this).find('.server-status');
+        if(!status || status.text() == 'Offline') return;
+
+        let uptime = new Date(status.attr('data-server-uptime'));
+        let now = new Date();
+        let diff = now - uptime;
+
+        const seconds = Math.floor((diff / 1000) % 60);
+        if(seconds == undefined || seconds == null || seconds == NaN) return;
+        const minutes = Math.floor((diff / 1000 / 60) % 60);
+        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+        let dayString = days > 0 ? `${days}d ` : '';
+        let hourString = hours > 0 ? `${hours}h ` : '';
+        let minuteString = minutes > 0 ? `${minutes}m ` : '';
+        let secondString = `${seconds}s`;
+
+        let uptimeString = `${dayString}${hourString}${minuteString}${secondString}`;
+        uptimeString = uptimeString.length > 0 ? `Online (${uptimeString})` : 'Online';
+
+        status.text(uptimeString);
+    });
+}
 
 function cacheCommand(path, command) {
     if (!_commandCache[path]) {
@@ -182,6 +215,7 @@ function setupServerContextMenu(path, online){
     let stopServerLink = $('#context-server-stop');
     let restartServerLink = $('#context-server-restart');
     let backupServerLink = $('#context-server-backup');
+    let restoreServerLink = $('#context-server-restore');
     let configureServerLink = $('#context-server-configure');
     let removeServerLink = $('#context-server-remove');
 
@@ -205,21 +239,25 @@ function setupServerContextMenu(path, online){
         e.preventDefault();
         sendCommand(path, "backup");
     });
+    restoreServerLink.off("click").click(function(e){
+        e.preventDefault();
+        getBackupList(path);
+    });
     configureServerLink.off("click").click(function(e){
         e.preventDefault();
         window.location.href = `/ManageServer?path=${path}`;
     });
     removeServerLink.off("click").click(function(e){
         e.preventDefault();
-        window.location.href = `/RemoveServer?path=${path}`;
+        removeServer(path);
     });
 }
 
-function setupPlayerContextMenu(event){
+function setupPlayerContextMenu(element, event){
     let mousepos = { x: event.pageX, y: event.pageY };
-    let path = $(this).attr('data-server-path');
-    let xuid = $(this).attr('data-player-xuid');
-    let name = $(this).attr('data-player-name');
+    let path = $(element).attr('data-server-path');
+    let xuid = $(element).attr('data-player-xuid');
+    let name = $(element).attr('data-player-name');
     $("#player-context-menu").attr("data-server-path", path);
     $("#player-context-menu").attr("data-player-xuid", xuid);
     $("#player-context-menu").attr("data-player-name", name);
@@ -235,11 +273,13 @@ function setupPlayerContextMenu(event){
     });
     whitelistPlayerLink.off("click").click(function(e){
         e.preventDefault();
-        sendCommand(path, `whitelist add ${xuid}`);
+        sendCommand(path, `whitelist add ${name}`);
+        sendCommand(path, `whitelist reload`);
     });
     unwhitelistPlayerLink.off("click").click(function(e){
         e.preventDefault();
-        sendCommand(path, `whitelist remove ${xuid}`);
+        sendCommand(path, `whitelist remove ${name}`);
+        sendCommand(path, `whitelist reload`);
     });
     permissionsMember.off("click").click(function(e){
         e.preventDefault();
@@ -284,8 +324,16 @@ function sendCommandToHub(path){
 }
 
 function appendConsoleOutput(path, output){
+    // separate the timestamp from the output
+    let timestamp = output.split(']')[0] + "]";
+    output = output.replace(timestamp, "").trim();
     let consoleOutput = $(`#console-window-${path}`);
-    consoleOutput.append(`<li class="console-line list-group-item"><span class="console-line-content">${output}</span></li>`);
+    let logElement = $(`
+        <li class="console-line list-group-item" data-bs-toggle="tooltip" data-bs-placement="top" title="${timestamp}">
+            <span class="console-line-content">${output}</span>
+        </li>`);
+    consoleOutput.append(logElement);
+    logElement.tooltip();
     consoleOutput.scrollTop(consoleOutput[0].scrollHeight);
 }
 
@@ -296,15 +344,19 @@ function processControlOutput(path, output){
     switch (control) {
         case "start-success":
             setOnlineStatus(path, true);
+            alertToast("Server started.");
             break;
         case "start-failed":
             setOnlineStatus(path, false);
+            alertToast("Server failed to start.");
             break;
         case "stop-success":
             setOnlineStatus(path, false);
+            alertToast("Server stopped.");
             break;
         case "stop-failed":
             setOnlineStatus(path, true);
+            alertToast("Server failed to stop.");
             break;
         case "player-count-update":
             updatePlayerCount(path,data);
@@ -316,7 +368,7 @@ function processControlOutput(path, output){
 }
 
 function setOnlineStatus(path, online){
-    $(`#server-status-${path}`).text(online ? "Online" : "Offline");
+    $(`#server-status-${path}`).text(online ? "Online" : "Offline").attr("data-server-uptime", online ? new Date() : 0);
 }
 
 function updatePlayerCount(path, playerCount){
@@ -331,14 +383,14 @@ function updatePlayerList(path, playerJson){
     players.forEach(player => {
         let lastSeen = player.Online ? "Now" : new Date(player.LastSeen).getDate() == new Date().getDate() ? new Date(player.LastSeen).toLocaleTimeString() : new Date(player.LastSeen).toLocaleDateString();
         let playerRow = $(`
-        <tr class="player-row" data-xuid="${player.XUID}" data-player-name="${player.Name}" data-server-path="${path}">
+        <tr class="player-row" data-player-xuid="${player.XUID}" data-player-name="${player.Name}" data-server-path="${path}">
             <td>${player.Name}</td>
             <td>${lastSeen}</td>
         </tr>`);
         playerList.append(playerRow);
         $(playerRow).on("contextmenu", function(e){
             e.preventDefault();
-            setupPlayerContextMenu(e);
+            setupPlayerContextMenu(this, e);
             return false;
         });
     });
@@ -354,9 +406,6 @@ function addAddon(path){
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title" id="addon-modal-label">Upload Addon</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
                     </div>
                     <div class="modal-body">
                         <form id="addon-upload-form" method="post" action="/ManageServer?handler=UploadAddon" enctype="multipart/form-data">
@@ -369,7 +418,6 @@ function addAddon(path){
                         </form>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                         <button type="button" class="btn btn-primary" id="addon-upload-button">Upload</button>
                     </div>
                 </div>
@@ -395,9 +443,6 @@ function addWorld(path){
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title" id="world-modal-label">Upload World</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
                     </div>
                     <div class="modal-body">
                         <form id="world-upload-form" method="post" action="/ManageServer?handler=UploadWorld" enctype="multipart/form-data">
@@ -412,7 +457,6 @@ function addWorld(path){
                         </form>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                         <button type="button" class="btn btn-primary" id="world-upload-button">Upload</button>
                     </div>
                 </div>
@@ -438,9 +482,6 @@ function removeWorld(path, worldName){
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title" id="world-modal-label">Remove World</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
                     </div>
                     <div class="modal-body">
                         <form id="world-remove-form" method="post" action="/ManageServer?handler=RemoveWorld" enctype="multipart/form-data">
@@ -453,7 +494,6 @@ function removeWorld(path, worldName){
                         </form>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                         <button type="button" class="btn btn-danger" id="world-remove-button">Remove</button>
                     </div>
                 </div>
@@ -468,6 +508,113 @@ function removeWorld(path, worldName){
     $('#world-remove-button').click(function(e){
         e.preventDefault();
         $('#world-remove-form').submit();
+    });
+}
+
+function removeServer(path){
+    var serverName = $(`tr.server-row[data-server-path="${path}"] td:first-child`).text().trim();
+    var token = $('input[name="__RequestVerificationToken"]').val();
+    let modal = $(`
+        <div class="modal fade" id="server-modal" tabindex="-1" role="dialog" aria-labelledby="server-modal-label" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="server-modal-label">Remove Server</h5>
+                    </div>
+                    <div class="modal-body text-center">
+                        <form id="server-remove-form" method="post" action="/ManageServer?handler=RemoveServer" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <input type="hidden" name="path" value="${path}">
+                                <input type="hidden" name="__RequestVerificationToken" value="${token}">
+                            </div>
+                            <div class="alert alert-warning" role="alert">Are you sure you want to remove this server?</div>
+                            <br />
+                            <h3>${serverName} (${path})<h3>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-danger" id="server-remove-button">Remove</button>
+                    </div>
+                </div>
+            </div>
+        </div>`);
+    $('body').append(modal);
+    $('#server-modal').modal('show');
+    $('#server-modal').on('hidden.bs.modal', function () {
+        // Remove the modal from the DOM when it is hidden
+        $(this).remove();
+    });
+    $('#server-remove-button').click(function(e){
+        e.preventDefault();
+        $('#server-remove-form').submit();
+    });
+}
+
+function restoreFromBackup(path, backList){
+    let backupOptions = '';
+    for(var i = 0; i < backList.length; i++){
+        backList[i] = backList[i].split('\\').pop();
+        backupOptions += `<option value="${backList[i]}">${backList[i]}</option>`;
+    }
+    let token = $('input[name="__RequestVerificationToken"]').val();
+    let modal = $(`
+        <div class="modal fade" id="backup-modal" tabindex="-1" role="dialog" aria-labelledby="backup-modal-label" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="backup-modal-label">Restore From Backup</h5>
+                    </div>
+                    <div class="modal-body">
+                        <form id="backup-restore-form" method="post" action="/ManageServer?handler=RestoreFromBackup" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <input type="hidden" name="path" value="${path}">
+                                <input type="hidden" name="__RequestVerificationToken" value="${token}">
+                                <label for="backup-file">Backup File</label>
+                                <select class="form-control" id="backup-file" name="backupFileName">
+                                    <option value="">Select a backup file</option>
+                                    ${backupOptions}
+                                </select>
+                                <label for="restore-type">Restore Type</label>
+                                <select class="form-control" id="restore-type" name="restoreWorldOnly">
+                                    <option value="false">Full Restore (Restore Entire Server)</option>
+                                    <option value="true">World Restore (Keeping current settings)</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" id="backup-restore-button">Restore</button>
+                    </div>
+                </div>
+            </div>
+        </div>`);
+    $('body').append(modal);
+    $('#backup-modal').modal('show');
+    $('#backup-modal').on('hidden.bs.modal', function () {
+        // Remove the modal from the DOM when it is hidden
+        $(this).remove();
+    });
+    $('#backup-restore-button').click(function(e){
+        e.preventDefault();
+        $('#backup-restore-form').submit();
+    });
+}
+
+function getBackupList(path){
+    $.ajax({
+        url: '/ManageServer?handler=BackupList',
+        type: 'POST',
+        data: {
+            path: path,
+            __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+        },
+        success: function(data){
+            restoreFromBackup(path, data);
+        }.bind(this),
+        error: function(xhr, status, err){
+            console.error(this.props.url, status, err.toString());
+            restoreFromBackup(path, []);
+        }.bind(this)
     });
 }
 

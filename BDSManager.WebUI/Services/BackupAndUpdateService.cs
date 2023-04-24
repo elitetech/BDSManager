@@ -11,6 +11,7 @@ public class BackupAndUpdateService : IHostedService, IDisposable
     private readonly BDSUpdater _bdsUpdater;
     private readonly ServerProperties _serverProperties;
     private readonly MinecraftServerService _minecraftServerService;
+    private bool _ranOnce = false;
     private Timer? _timer;
 
     public BackupAndUpdateService(OptionsIO optionsIO, BDSBackup bdsBackup, BDSUpdater bdsUpdater, ServerProperties serverProperties, MinecraftServerService minecraftServerService)
@@ -40,42 +41,60 @@ public class BackupAndUpdateService : IHostedService, IDisposable
     {
         RunScheduledBackups();
         RunScheduledUpdates();
+        if (!_ranOnce)
+            AutoStartServers();
+        _ranOnce = true;
+        
+        _optionsIO.RefreshServers();
+    }
+
+    private async void AutoStartServers()
+    {
+        var serversCount = _optionsIO.ManagerOptions.Servers.Where(x => x.AutoStartEnabled).Count();
+        if (serversCount == 0)
+            return;
+        for(var i = 0; i < serversCount; i++)
+        {
+            var server = _optionsIO.ManagerOptions.Servers.Where(x => x.AutoStartEnabled).ElementAt(i);
+            var instance = _minecraftServerService.ServerInstances.Any(x => x.Path == server.Path) ? _minecraftServerService.ServerInstances.FirstOrDefault(x => x.Path == server.Path) : null;
+            if (instance == null || instance.ServerProcess == null || instance.ServerProcess.HasExited)
+                await _minecraftServerService.StartServerInstance(server);
+        }
     }
 
     private async void RunScheduledBackups()
     {
-        foreach (var server in _optionsIO.ManagerOptions.Servers)
+        var serversCount = _optionsIO.ManagerOptions.Servers.Where(x => x.Backup.BackupEnabled).Count();
+        if (serversCount == 0)
+            return;
+        for(var i = 0; i < serversCount; i++)
         {
-            if (!server.Backup.BackupEnabled)
+            var server = _optionsIO.ManagerOptions.Servers.Where(x => x.Backup.BackupEnabled).ElementAt(i);
+            if(server.LastStarted == null)
                 continue;
             
-            if (server.Backup.NextBackup == null || server.Backup.NextBackup <= DateTime.Now)
-            {
-                
-                var instance = _minecraftServerService.ServerInstances.Any(x => x.Path == server.Path) ? _minecraftServerService.ServerInstances.FirstOrDefault(x => x.Path == server.Path) : null;
-                if(instance != null && instance.ServerProcess != null && !instance.ServerProcess.HasExited)
-                    await _minecraftServerService.StopServerInstance(instance);
+            if(server.Backup.NextBackup != null && server.Backup.NextBackup > DateTime.Now)
+                continue;
 
-                await _bdsBackup.Backup(server);
-                server.Backup.NextBackup = DateTime.Now.AddHours(server.Backup.BackupInterval);
-                _serverProperties.SaveBackupSettings(server);
-            }
+            await _minecraftServerService.BackupServer(server);
+            server.Backup.NextBackup = DateTime.Now.AddHours(server.Backup.BackupInterval);
+            _serverProperties.SaveBackupSettings(server);
         }
     }
 
     private async void RunScheduledUpdates()
     {
-        foreach (var server in _optionsIO.ManagerOptions.Servers)
+        var serversCount = _optionsIO.ManagerOptions.Servers.Where(x => x.Update.UpdateEnabled).Count();
+        if (serversCount == 0)
+            return;
+        for(var i = 0; i < serversCount; i++)
         {
-            if (!server.Update.UpdateEnabled)
+            var server = _optionsIO.ManagerOptions.Servers.Where(x => x.Update.UpdateEnabled).ElementAt(i);
+            if(server.Update.NextUpdate != null && server.Update.NextUpdate > DateTime.Now)
                 continue;
-            
-            if (server.Update.NextUpdate == null || server.Update.NextUpdate <= DateTime.Now)
-            {
-                await _bdsUpdater.UpdateBedrockServerAsync(server);
-                server.Update.NextUpdate = DateTime.Now.AddHours(server.Update.UpdateInterval);
-                _serverProperties.SaveUpdateSettings(server);
-            }
+            await _bdsUpdater.UpdateBedrockServerAsync(server);
+            server.Update.NextUpdate = DateTime.Now.AddHours(server.Update.UpdateInterval);
+            _serverProperties.SaveUpdateSettings(server);
         }
     }
 }

@@ -27,6 +27,8 @@ public class ServerProperties
         server.Addons = ParseAddons(server);
         server.Backup = ParseBackupSettings(server);
         server.Update = ParseUpdateSettings(server);
+        server.AutoStartEnabled = ParseAutoStart(server);
+        server.LastStarted = ParseLastStarted(server);
         server.Worlds = ListWorlds(server);
         return server;
     }
@@ -290,6 +292,48 @@ public class ServerProperties
         return File.Exists(updatePath) ? JsonConvert.DeserializeObject<UpdateModel>(File.ReadAllText(updatePath)) : new UpdateModel();
     }
 
+    private bool ParseAutoStart(ServerModel server)
+    {
+        var autoStartPath = Path.Combine(_serversPath, server.Path, "autostart.json");
+        if(!File.Exists(autoStartPath))
+            return false;
+
+        var autoStartJson = File.ReadAllText(autoStartPath);
+        if(string.IsNullOrEmpty(autoStartJson))
+            return false;
+
+        var autoStart = JsonConvert.DeserializeObject<bool>(autoStartJson);
+        return autoStart;
+    }
+
+    internal void SaveAutoStart(ServerModel server)
+    {
+        var autoStartPath = Path.Combine(_serversPath, server.Path, "autostart.json");
+        var autoStartJson = JsonConvert.SerializeObject(server.AutoStartEnabled);
+        File.WriteAllText(autoStartPath, autoStartJson);
+    }
+
+    private DateTime? ParseLastStarted(ServerModel server)
+    {
+        var lastStartedPath = Path.Combine(_serversPath, server.Path, "laststarted.json");
+        if(!File.Exists(lastStartedPath))
+            return null;
+
+        var lastStartedJson = File.ReadAllText(lastStartedPath);
+        if(string.IsNullOrEmpty(lastStartedJson))
+            return null;
+
+        var lastStarted = JsonConvert.DeserializeObject<DateTime>(lastStartedJson);
+        return lastStarted;
+    }
+
+    internal void SaveLastStarted(ServerModel server)
+    {
+        var lastStartedPath = Path.Combine(_serversPath, server.Path, "laststarted.json");
+        var lastStartedJson = JsonConvert.SerializeObject(server.LastStarted);
+        File.WriteAllText(lastStartedPath, lastStartedJson);
+    }
+
     private List<WorldPackModel> ParseWorldResourcePacks(ServerModel server)
     {
         var worldResourcePacksPath = Path.Combine(_serversPath, server.Path, "worlds", server.Options.LevelName, "world_resource_packs.json");
@@ -305,6 +349,10 @@ public class ServerProperties
             .Select(x => new WorldPackModel { pack_id = x.Manifest.header.uuid, version = x.Manifest.header.version })
             .ToList();
         var serializedResourcePacks = JsonConvert.SerializeObject(addons);
+        
+        if(!Directory.Exists(Path.Combine(_serversPath, server.Path, "worlds", server.Options.LevelName)))
+            Directory.CreateDirectory(Path.Combine(_serversPath, server.Path, "worlds", server.Options.LevelName));
+        
         File.WriteAllText(path, serializedResourcePacks);
     }
 
@@ -323,6 +371,10 @@ public class ServerProperties
             .Select(x => new WorldPackModel { pack_id = x.Manifest.header.uuid, version = x.Manifest.header.version })
             .ToList();
         var serializedBehaviorPacks = JsonConvert.SerializeObject(addons);
+        
+        if(!Directory.Exists(Path.Combine(_serversPath, server.Path, "worlds", server.Options.LevelName)))
+            Directory.CreateDirectory(Path.Combine(_serversPath, server.Path, "worlds", server.Options.LevelName));
+
         File.WriteAllText(path, serializedBehaviorPacks);
     }
 

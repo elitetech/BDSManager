@@ -8,14 +8,18 @@ public class BDSBackup
     private readonly ILogger<BDSBackup> _logger;
     private readonly IConfiguration _configuration;
     private readonly DirectoryIO _directoryIO;
+    private readonly ServerProperties _serverProperties;
+    private readonly OptionsIO _optionsIO;
     private readonly string? _serversPath;
     private readonly string? _backupsPath;
 
-    public BDSBackup(ILogger<BDSBackup> logger, IConfiguration configuration, DirectoryIO directoryIO)
+    public BDSBackup(ILogger<BDSBackup> logger, IConfiguration configuration, DirectoryIO directoryIO, ServerProperties serverProperties, OptionsIO optionsIO)
     {
         _logger = logger;
         _configuration = configuration;
         _directoryIO = directoryIO;
+        _serverProperties = serverProperties;
+        _optionsIO = optionsIO;
         _serversPath = _configuration["ServersPath"];
         _backupsPath = _configuration["BackupsPath"];
     }
@@ -60,7 +64,8 @@ public class BDSBackup
                 || fileName == "world_resource_packs.json"
                 || fileName == "players.json"
                 || fileName == "backup.json"
-                || fileName == "update.json")
+                || fileName == "update.json"
+                || fileName == "autostart.json")
                 backupFile = true;
 
             if(!backupFile)
@@ -87,28 +92,44 @@ public class BDSBackup
 
             _directoryIO.Copy(directory, Path.Combine(backupDirectory, dirName), true);
         }
-        CreateZipFromDirectory(backupPath, backupName, backupDirectory);
-        Directory.Delete(backupDirectory, true);
-        DeleteOlderArchivedBackups(backupPath, server.Backup.BackupKeepCount);
+        server.Backup.LastBackup = DateTime.Now;
+        _serverProperties.SaveBackupSettings(server);
+        _optionsIO.RefreshServers();
         return Task.CompletedTask;
     }
 
-    private void CreateZipFromDirectory(string backupPath, string backupName, string backupDirectory)
+    private void CreateZipFromDirectory(string sourceDirectory, string destinationFile)
     {
-        string zipFileName = Path.Combine(backupPath, $"{backupName}.zip");
+        using var zip = ZipFile.Open(destinationFile, ZipArchiveMode.Create);
 
-        // Create a new zip archive
-        using var zip = ZipFile.Open(zipFileName, ZipArchiveMode.Create);
-
-        // Iterate through the files in the directory
-        foreach (var file in Directory.GetFiles(backupDirectory, "*", SearchOption.AllDirectories))
+        foreach (var file in Directory.GetFiles(sourceDirectory, "*", SearchOption.AllDirectories))
         {
-            // Get the relative path of the file within the backupDirectory
-            string relativePath = file.Substring(backupDirectory.Length + 1);
+            string relativePath = file.Substring(sourceDirectory.Length + 1);
 
-            // Add the file to the zip archive
             zip.CreateEntryFromFile(file, relativePath);
         }
+    }
+
+    internal Task ArchiveBackup(ServerModel server)
+    {
+        if(string.IsNullOrEmpty(_backupsPath))
+            throw new Exception("BackupsPath is not set in appsettings.json");
+        var backupPath = Path.Combine(_backupsPath, server.Path);
+        if (!Directory.Exists(backupPath))
+            return Task.CompletedTask;
+
+        foreach(var dir in Directory.GetDirectories(backupPath))
+        {
+            var dirName = Path.GetFileName(dir);
+            if(dirName == null || dirName == Path.GetFileName(backupPath))
+                continue;
+            var sourceDirectory = Path.Combine(backupPath, dirName);
+            var desitnationFile = Path.Combine(backupPath, $"{dirName}.zip");
+            CreateZipFromDirectory(sourceDirectory, desitnationFile);
+            Directory.Delete(sourceDirectory, true);
+            DeleteOlderArchivedBackups(backupPath, server.Backup.BackupKeepCount);
+        }
+        return Task.CompletedTask;
     }
 
     private void DeleteOlderArchivedBackups(string path, int maxBackups)
@@ -123,5 +144,60 @@ public class BDSBackup
         {
             File.Delete(file);
         }
+    }
+
+    public Task RestoreBackup(ServerModel server, string archiveFileName, bool restoreWorldOnly = true)
+    {
+        if(string.IsNullOrEmpty(_backupsPath))
+            throw new Exception("BackupsPath is not set in appsettings.json");
+        if(string.IsNullOrEmpty(_serversPath))
+            throw new Exception("ServersPath is not set in appsettings.json");
+        var backupPath = Path.Combine(_backupsPath, server.Path);
+        if (!Directory.Exists(backupPath))
+            return Task.CompletedTask;
+
+        var archivePath = Path.Combine(backupPath, archiveFileName);
+        if (!File.Exists(archivePath))
+            return Task.CompletedTask;
+
+        var backupDirectory = Path.Combine(backupPath, Path.GetFileNameWithoutExtension(archiveFileName));
+        if (Directory.Exists(backupDirectory))
+            Directory.Delete(backupDirectory, true);
+        Directory.CreateDirectory(backupDirectory);
+
+        ZipFile.ExtractToDirectory(archivePath, backupDirectory);
+
+        if(!restoreWorldOnly)
+        {
+            var files = Directory.GetFiles(backupDirectory);
+            foreach (var file in files)
+            {
+                var fileName = Path.GetFileName(file);
+                if(fileName == null)
+                    continue;
+                var destinationFile = Path.Combine(_serversPath, server.Path, fileName);
+                if (File.Exists(destinationFile))
+                    File.Delete(destinationFile);
+                File.Move(file, destinationFile);
+            }
+        }
+
+        var directories = Directory.GetDirectories(backupDirectory);
+        foreach (var directory in directories)
+        {
+            var dirName = Path.GetFileName(directory);
+            if(dirName == null)
+                continue;
+
+            if(dirName != "worlds" && restoreWorldOnly)
+                continue;
+            var destinationDirectory = Path.Combine(_serversPath, server.Path, dirName);
+            if (Directory.Exists(destinationDirectory))
+                Directory.Delete(destinationDirectory, true);
+            Directory.Move(directory, destinationDirectory);
+        }
+
+        Directory.Delete(backupDirectory, true);
+        return Task.CompletedTask;
     }
 }

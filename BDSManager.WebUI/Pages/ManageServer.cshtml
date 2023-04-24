@@ -214,9 +214,9 @@
                                 </div>
                                 <div class="col-lg-3 col-md-3 col-sm-4 col-10">
                                     <label class="form-label" for="Server.AllowList[@i].ignoresPlayerLimit">Ignore Player Limit</label>
-                                    <select class="form-control" name="Server.AllowList[@i].ignoresPlayerLimit" value="@Model.Server.AllowList[i].ignoresPlayerLimit">
-                                        <option value="true" selected="@(Model.Server.AllowList[i].ignoresPlayerLimit)">True</option>
-                                        <option value="false" selected="@(!Model.Server.AllowList[i].ignoresPlayerLimit)">False</option>
+                                    <select class="form-control" name="Server.AllowList[@i].ignoresPlayerLimit" value=@(Model.Server.AllowList[i].ignoresPlayerLimit ? "true" : "false")>
+                                        <option value="true">True</option>
+                                        <option value="false">False</option>
                                     </select>
                                 </div>
                                 <div class="col-lg-1 col-md-3 col-sm-2 col-2 position-relative">
@@ -269,14 +269,14 @@
                             <div class="row player-permission" data-group-index="@i">
                                 <div class="col-lg-4 col-md-3 col-sm-6 col-12">
                                     <label class="form-label" for="Server.Permissions[@i].xuid">XUID</label>
-                                    <input type="text" class="form-control" placeholder="XUID" name="Server.Permissions[@i].xuid" />
+                                    <input type="text" class="form-control" placeholder="XUID" name="Server.Permissions[@i].xuid" value="@Model.Server.Permissions[i].xuid" />
                                 </div>
                                 <div class="col-lg-3 col-md-3 col-sm-4 col-10">
                                     <label class="form-label" for="Server.Permissions[@i].permission">Permission Level</label>
-                                    <select class="form-control" name="Server.Permissions[@i].permission" value="@Model.Server.Permissions[i].permission">
-                                        <option value="visitor" selected=@(Model.Server.Permissions[i].permission == "vistor" ? "true" : "false")>Visitor</option>
-                                        <option value="member" selected=@(Model.Server.Permissions[i].permission == "member" ? "true" : "false")>Member</option>
-                                        <option value="operator" selected=@(Model.Server.Permissions[i].permission == "operator" ? "true" : "false")>Operator</option>
+                                    <select class="form-control" name="Server.Permissions[@i].permission" value=@Model.Server.Permissions[i].permission>
+                                        <option value="visitor">Visitor</option>
+                                        <option value="member">Member</option>
+                                        <option value="operator">Operator</option>
                                     </select>
                                 </div>
                                 <div class="col-lg-1 col-md-3 col-sm-2 col-2 position-relative">
@@ -316,7 +316,7 @@
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#UpdateBackup" aria-expanded="false" aria-controls="UpdateBackup">
-                        Update & Backup Settings
+                        Automatic Start/Update/Backup Settings
                     </button>
                 </h2>
                 <div id="UpdateBackup" class="accordion-collapse collapse" data-bs-parent="#MoreSettings">
@@ -324,9 +324,9 @@
                         <div class="row">
                             <div class="col-md-4 col-sm-6 col-xs-12">
                                 <label class="form-label" asp-for="Server.Backup.BackupEnabled">Enable Automatic Backups</label>
-                                <select class="form-control" asp-for="Server.Backup.BackupEnabled" value="@Model.Server.Backup.BackupEnabled">
-                                    <option value="true" selected=@(Model.Server.Backup.BackupEnabled ? "true" : "false")>Yes</option>
-                                    <option value="false" selected=@(Model.Server.Backup.BackupEnabled ? "false" : "true")>No</option>
+                                <select class="form-control" asp-for="Server.Backup.BackupEnabled" value=@(Model.Server.Backup.BackupEnabled ? "true" : "false")>
+                                    <option value="true">Yes</option>
+                                    <option value="false">No</option>
                                 </select>
                             </div>
                             <div class="col-md-4 col-sm-6 col-xs-12">
@@ -338,12 +338,13 @@
                                 <input type="number" class="form-control" asp-for="Server.Backup.BackupKeepCount" value="@Model.Server.Backup.BackupKeepCount" />
                             </div>
                         </div>
+                        <hr />
                         <div class="row">
                             <div class="col-md-4 col-sm-6 col-xs-12">
                                 <label class="form-label" asp-for="Server.Update.UpdateEnabled">Enable Automatic Updates</label>
-                                <select class="form-control" asp-for="Server.Update.UpdateEnabled" value="@Model.Server.Update.UpdateEnabled">
-                                    <option value="true" selected=@(Model.Server.Update.UpdateEnabled ? "true" : "false")>Yes</option>
-                                    <option value="false" selected=@(Model.Server.Update.UpdateEnabled ? "false" : "true")>No</option>
+                                <select class="form-control" asp-for="Server.Update.UpdateEnabled" value=@(Model.Server.Update.UpdateEnabled ? "true" : "false")>
+                                    <option value="true">Yes</option>
+                                    <option value="false">No</option>
                                 </select>
                             </div>
                             <div class="col-md-4 col-sm-6 col-xs-12">
@@ -352,6 +353,16 @@
                             </div>
                             <div class="col-md-4 col-sm-6 col-xs-12">
                                 <button type="button" class="btn btn-dark" style="margin-top: 32px;" onclick="checkForUpdates('@Model.Server.Path')">Update Now</button>
+                            </div>
+                        </div>
+                        <hr />
+                        <div class="row">
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.AutoStartEnabled">Enable Automatic Start</label>
+                                <select class="form-control" asp-for="Server.AutoStartEnabled" value=@(Model.Server.AutoStartEnabled ? "true" : "false")>
+                                    <option value="true">Yes</option>
+                                    <option value="false">No</option>
+                                </select>
                             </div>
                         </div>
                     </div>

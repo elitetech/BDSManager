@@ -57,7 +57,7 @@ public class BDSUpdater
         var instance = _minecraftServerService.ServerInstances.FirstOrDefault(x => x.Path == server.Path);
         if(instance?.ServerProcess != null && !instance.ServerProcess.HasExited)
             await _minecraftServerService.StopServerInstance(instance);
-        ZipFile.ExtractToDirectory(filePath, destinationPath);
+        ZipFile.ExtractToDirectory(filePath, destinationPath, true);
 
         _serverProperties.SaveServerProperties(server);
         _serverProperties.SavePermissions(server);
@@ -113,11 +113,11 @@ public class BDSUpdater
 
         string? downloadLink = await GetBedrockServerDownloadLinkAsync();
         if (downloadLink == null)
-            throw new Exception("Could not find download link");
+            return true;
 
         string? latestVersion = ParseVersionFromFileName(downloadLink);
         if (latestVersion == null)
-            throw new Exception("Could not parse version from download link");
+            return true;
 
         if (latestVersion == currentVersion)
             return true;
@@ -141,11 +141,11 @@ public class BDSUpdater
 
         string? downloadLink = await GetBedrockServerDownloadLinkAsync();
         if (downloadLink == null)
-            throw new Exception("Could not find download link");
+            return true;
 
         string? latestVersion = ParseVersionFromFileName(downloadLink);
         if (latestVersion == null)
-            throw new Exception("Could not parse version from download link");
+            return true;
 
         if (latestVersion == currentVersion)
             return true;

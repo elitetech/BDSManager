@@ -4,6 +4,7 @@
 @{
     ViewData["Title"] = "Dashboard";
 }
+@Html.AntiForgeryToken()
 <div>
     <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-context-menu">
         <button class="dropdown-item" id="context-server-start">Start</button>
@@ -11,6 +12,7 @@
         <button class="dropdown-item" id="context-server-restart">Restart</button>
         <hr class="dropdown-divider">
         <button class="dropdown-item" id="context-server-backup">Backup</button>
+        <button class="dropdown-item" id="context-server-restore">Restore</button>
         <button class="dropdown-item" id="context-server-configure">Configure</button>
         <button class="dropdown-item btn-link btn-danger" id="context-server-remove">Remove</button>
     </div>
@@ -46,9 +48,8 @@
                             <tr>
                                 <th>Name</th>
                                 <th>Port</th>
-                                <th>Players</th>
-                                <th>Map</th>
                                 <th>Version</th>
+                                <th>Players</th>
                                 <th>Online</th>
                             </tr>
                         </thead>
@@ -57,12 +58,11 @@
                             {
                                 var online = Model.ServerInstances.Any(x => x.Path == server.Path);
                                 <tr data-server-path="@server.Path" class="server-row">
-                                    <td>@server.Options.Name</td>
+                                    <td><img class="server-icon" src="https://www.minecraft.net/etc.clientlibs/minecraft/clientlibs/main/resources/favicon.ico" /> @server.Options.Name</td>
                                     <td>@server.Options.Port</td>
-                                    <td id="server-player-count-@server.Path">@server.Players.Where(x => x.Online).Count() / @server.Options.MaxPlayers</td>
-                                    <td>@server.Options.LevelName</td>
                                     <td>@server.Version</td>
-                                    <td id="server-status-@server.Path">@(online ? "Online" : "Offline")</td>
+                                    <td id="server-player-count-@server.Path">@server.Players.Where(x => x.Online).Count() / @server.Options.MaxPlayers</td>
+                                    <td id="server-status-@server.Path" class="server-status" data-server-uptime="@server.LastStarted">@(online ? $"Online" : "Offline")</td>
                                 </tr>
                             }
                         </tbody>
@@ -99,7 +99,7 @@
                                             var lastSeen = player.Online ? "Now" 
                                                 : player.LastSeen?.ToString("MM/dd/yyyy") == DateTime.Now.ToString("MM/dd/yyyy") ? player.LastSeen?.ToString("hh:mm:ss tt") 
                                                 : player.LastSeen?.ToString("MM/dd/yyyy hh:mm tt");
-                                            <tr class="player-row" data-xuid="@player.XUID" data-player-name="@player.Name" data-server-path="@server.Path">
+                                            <tr class="player-row" data-player-xuid="@player.XUID" data-player-name="@player.Name" data-server-path="@server.Path">
                                                 <td>@player.Name</td>
                                                 <td>@lastSeen</td>
                                             </tr>
@@ -122,8 +122,9 @@
                                     {
                                         foreach (var logEntry in instance.ConsoleOutput)
                                         {
-                                            <li class="console-line list-group-item">
-                                                <span class="console-line-content">@logEntry</span>
+                                            var timestamp = logEntry.Split(']')[0] + "]";
+                                            <li class="console-line list-group-item" data-bs-toggle="tooltip" data-bs-placement="top" title="@timestamp">
+                                                <span class="console-line-content">@logEntry.Replace(timestamp, "").Trim()</span>
                                             </li>
                                         }
                                     }
