@@ -294,7 +294,7 @@ public class ManageServerModel : PageModel
 
         var instance = _minecraftServerService.ServerInstances.FirstOrDefault(x => x.Path == server.Path);
         if(instance != null)
-            await _minecraftServerService.StopServerInstance(instance);
+            await _minecraftServerService.StopServerInstance(instance, "DELETION");
         
 
         await _minecraftServerService.BackupServer(server);
@@ -340,7 +340,7 @@ public class ManageServerModel : PageModel
 
         var instance = _minecraftServerService.ServerInstances.FirstOrDefault(x => x.Path == server.Path);
         if(instance != null)
-            await _minecraftServerService.StopServerInstance(instance);
+            await _minecraftServerService.StopServerInstance(instance, "RESTORE");
 
         await _bdsBackup.RestoreBackup(server, backupFileName, restoreWorldOnly);
         if(!restoreWorldOnly)

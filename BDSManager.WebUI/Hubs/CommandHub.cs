@@ -38,7 +38,7 @@ public class CommandHub : Hub
                 if(instance == null)
                     _consoleHub.UpdateConsoleOutput(path, "Server not found");
                 else
-                    await _minecraftServerService.StopServerInstance(instance);
+                    await _minecraftServerService.StopServerInstance(instance, "STOP");
             else if(command == "restart")
                 if(instance == null)
                     _consoleHub.UpdateConsoleOutput(path, "Server not found");

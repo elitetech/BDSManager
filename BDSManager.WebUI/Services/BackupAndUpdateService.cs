@@ -12,6 +12,8 @@ public class BackupAndUpdateService : IHostedService, IDisposable
     private readonly ServerProperties _serverProperties;
     private readonly MinecraftServerService _minecraftServerService;
     private bool _ranOnce = false;
+    private bool _backingUp = false;
+    private bool _updating = false;
     private Timer? _timer;
 
     public BackupAndUpdateService(OptionsIO optionsIO, BDSBackup bdsBackup, BDSUpdater bdsUpdater, ServerProperties serverProperties, MinecraftServerService minecraftServerService)
@@ -41,15 +43,16 @@ public class BackupAndUpdateService : IHostedService, IDisposable
     {
         RunScheduledBackups();
         RunScheduledUpdates();
-        if (!_ranOnce)
-            AutoStartServers();
-        _ranOnce = true;
+        AutoStartServers();
         
         _optionsIO.RefreshServers();
     }
 
     private async void AutoStartServers()
     {
+        if(_ranOnce || _backingUp || _updating)
+            return;
+        _ranOnce = true;
         var serversCount = _optionsIO.ManagerOptions.Servers.Where(x => x.AutoStartEnabled).Count();
         if (serversCount == 0)
             return;
@@ -64,6 +67,7 @@ public class BackupAndUpdateService : IHostedService, IDisposable
 
     private async void RunScheduledBackups()
     {
+        _backingUp = true;
         var serversCount = _optionsIO.ManagerOptions.Servers.Where(x => x.Backup.BackupEnabled).Count();
         if (serversCount == 0)
             return;
@@ -80,10 +84,12 @@ public class BackupAndUpdateService : IHostedService, IDisposable
             server.Backup.NextBackup = DateTime.Now.AddHours(server.Backup.BackupInterval);
             _serverProperties.SaveBackupSettings(server);
         }
+        _backingUp = false;
     }
 
     private async void RunScheduledUpdates()
     {
+        _updating = true;
         var serversCount = _optionsIO.ManagerOptions.Servers.Where(x => x.Update.UpdateEnabled).Count();
         if (serversCount == 0)
             return;
@@ -96,5 +102,6 @@ public class BackupAndUpdateService : IHostedService, IDisposable
             server.Update.NextUpdate = DateTime.Now.AddHours(server.Update.UpdateInterval);
             _serverProperties.SaveUpdateSettings(server);
         }
+        _updating = false;
     }
 }

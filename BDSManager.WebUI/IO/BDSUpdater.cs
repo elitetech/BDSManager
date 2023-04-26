@@ -56,7 +56,7 @@ public class BDSUpdater
         
         var instance = _minecraftServerService.ServerInstances.FirstOrDefault(x => x.Path == server.Path);
         if(instance?.ServerProcess != null && !instance.ServerProcess.HasExited)
-            await _minecraftServerService.StopServerInstance(instance);
+            await _minecraftServerService.StopServerInstance(instance, "UPDATE");
         ZipFile.ExtractToDirectory(filePath, destinationPath, true);
 
         _serverProperties.SaveServerProperties(server);

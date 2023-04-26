@@ -45,6 +45,8 @@ public class MinecraftServerService
             var server = _optionsIO.ManagerOptions.Servers.FirstOrDefault(y => y.Path == serverPath);
             if (server == null)
                 return;
+            
+            _consoleHub.UpdateConsoleOutput(server.Path, "Found existing server process, restarting...");
             StartServerInstance(server);
         });
 
@@ -119,7 +121,7 @@ public class MinecraftServerService
         return Task.CompletedTask;
     }
 
-    public async Task StopServerInstance(ServerInstance instance)
+    public async Task StopServerInstance(ServerInstance instance, string? reason = null)
     {
         if(string.IsNullOrEmpty(instance.Path))
         {
@@ -136,7 +138,7 @@ public class MinecraftServerService
 
         if (!instance.ServerProcess.HasExited)
         {
-            await StopServerProcess(instance);
+            await StopServerProcess(instance, reason);
 
             instance.ConsoleOutput.Clear();
             ServerInstances.Remove(instance);
@@ -157,10 +159,10 @@ public class MinecraftServerService
             ServerInstances.Remove(instance);
             return;
         }
-
+        _consoleHub.UpdateConsoleOutput(instance.Path, "Restarting server...");
         if (!instance.ServerProcess.HasExited)
         {
-            await StopServerProcess(instance);
+            await StopServerProcess(instance, "RESTART");
             instance.ConsoleOutput.Clear();
         }
         instance.ServerProcess.Start();
@@ -202,7 +204,7 @@ public class MinecraftServerService
         line = RemoveTimestamp(line).Trim();
         if (line.ToLower().Contains("telemetry") 
             || line.ToLower().Contains("src-server") 
-            || line.Contains("autocompaction")
+            || line.ToLower().Contains("autocompaction")
             || string.IsNullOrEmpty(line))
             return true;
         return false;
@@ -229,27 +231,31 @@ public class MinecraftServerService
         
         var instance = ServerInstances.FirstOrDefault(x => x.Path == server.Path);
         var running = instance != null && instance.ServerProcess != null && !instance.ServerProcess.HasExited;
-
+        _consoleHub.UpdateConsoleOutput(server.Path, "Performing backup...");
         if (running && instance != null)
-            await StopServerInstance(instance);
+            await StopServerInstance(instance, "BACKUP");
         
         await _bdsBackup.Backup(server);
 
-        if(running)
-            await StartServerInstance(server);
+        var tasks = new List<Task>();
 
-        await _bdsBackup.ArchiveBackup(server);
+        if(running)
+            tasks.Add(StartServerInstance(server));
+
+        tasks.Add(_bdsBackup.ArchiveBackup(server));
+
+        await Task.WhenAll(tasks);
         return;
     }
 
-    private async Task StopServerProcess(ServerInstance instance)
+    private async Task StopServerProcess(ServerInstance instance, string? reason = null)
     {
         if(instance.ServerProcess == null || string.IsNullOrEmpty(instance.Path))
             return;
         
         if (!instance.ServerProcess.HasExited)
         {
-            await WarnPlayerOfShutdown(instance);
+            await WarnPlayerOfShutdown(instance, reason);
             try
             {
                 instance.ServerProcess.StandardInput.WriteLine("stop");
@@ -288,7 +294,7 @@ public class MinecraftServerService
         }
     }
 
-    private Task WarnPlayerOfShutdown(ServerInstance instance, int timeLeft = SHUTDOWN_WARNING_TIME)
+    private Task WarnPlayerOfShutdown(ServerInstance instance, string? reason = null, int timeLeft = SHUTDOWN_WARNING_TIME)
     {
         if(instance.ServerProcess == null 
             || instance.ServerProcess.HasExited 
@@ -301,7 +307,7 @@ public class MinecraftServerService
         {
             if(timeLeft <= 0)
                 break;
-            var nextWarning = SendShutdownWarning(instance, timeLeft);
+            var nextWarning = SendShutdownWarning(instance, timeLeft, reason);
             if(nextWarning == 0)
                 break;
             timeLeft -= nextWarning;
@@ -310,7 +316,7 @@ public class MinecraftServerService
         return Task.CompletedTask;
     }
 
-    private int SendShutdownWarning(ServerInstance instance, int timeLeft)
+    private int SendShutdownWarning(ServerInstance instance, int timeLeft, string? reason = null)
     {
         var nextWarning = 0;
         if(instance.ServerProcess == null || instance.ServerProcess.HasExited || timeLeft <= 0)
@@ -343,7 +349,8 @@ public class MinecraftServerService
                 return nextWarning;
         }
         var plural = timeLeft / 1000 == 1 ? "" : "s";
-        instance.ServerProcess?.StandardInput.WriteLine($"say Server shutting down in {timeLeft / 1000} second{plural}");
+        var reasonText = string.IsNullOrEmpty(reason) ? "" : $" for {reason}";
+        instance.ServerProcess?.StandardInput.WriteLine($"say Server shutting down in {timeLeft / 1000} second{plural}{reasonText}");
 
         return nextWarning;
     }

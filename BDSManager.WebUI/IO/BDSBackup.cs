@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using BDSManager.WebUI.Hubs;
 using BDSManager.WebUI.Models;
 
 namespace BDSManager.WebUI.IO;
@@ -10,16 +11,18 @@ public class BDSBackup
     private readonly DirectoryIO _directoryIO;
     private readonly ServerProperties _serverProperties;
     private readonly OptionsIO _optionsIO;
+    private readonly ConsoleHub _consoleHub;
     private readonly string? _serversPath;
     private readonly string? _backupsPath;
 
-    public BDSBackup(ILogger<BDSBackup> logger, IConfiguration configuration, DirectoryIO directoryIO, ServerProperties serverProperties, OptionsIO optionsIO)
+    public BDSBackup(ILogger<BDSBackup> logger, IConfiguration configuration, DirectoryIO directoryIO, ServerProperties serverProperties, OptionsIO optionsIO, ConsoleHub consoleHub)
     {
         _logger = logger;
         _configuration = configuration;
         _directoryIO = directoryIO;
         _serverProperties = serverProperties;
         _optionsIO = optionsIO;
+        _consoleHub = consoleHub;
         _serversPath = _configuration["ServersPath"];
         _backupsPath = _configuration["BackupsPath"];
     }
@@ -129,6 +132,7 @@ public class BDSBackup
             Directory.Delete(sourceDirectory, true);
             DeleteOlderArchivedBackups(backupPath, server.Backup.BackupKeepCount);
         }
+        _consoleHub.UpdateConsoleOutput(server.Path, $"Archived backups for {server.Options.Name}");
         return Task.CompletedTask;
     }
 
@@ -160,6 +164,8 @@ public class BDSBackup
         if (!File.Exists(archivePath))
             return Task.CompletedTask;
 
+        _consoleHub.UpdateConsoleOutput(server.Path, $"Restoring backup {archiveFileName} for {server.Options.Name}");
+        
         var backupDirectory = Path.Combine(backupPath, Path.GetFileNameWithoutExtension(archiveFileName));
         if (Directory.Exists(backupDirectory))
             Directory.Delete(backupDirectory, true);
