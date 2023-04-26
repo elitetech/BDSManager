@@ -349,23 +349,23 @@ public class ManageServerModel : PageModel
         return RedirectToPage("./ManageServer", new { createNew = false, path = path, newAddon = false });
     }
 
-    public async Task<JsonResult> OnPostBackupList(string path)
+    public Task<JsonResult> OnPostBackupList(string path)
     {
         if (string.IsNullOrEmpty(path))
-            return new JsonResult(new List<string>());
+            return Task.FromResult(new JsonResult(new List<string>()));
         if (string.IsNullOrEmpty(_backupsPath))
-            return new JsonResult(new List<string>());
+            return Task.FromResult(new JsonResult(new List<string>()));
 
         var server = _optionsIO.ManagerOptions.Servers.FirstOrDefault(x => x.Path == path);
         if (server == null)
-            return new JsonResult(new List<string>());
+            return Task.FromResult(new JsonResult(new List<string>()));
 
         var backupPath = Path.Combine(_backupsPath, server.Path);
         if(!Directory.Exists(backupPath))
-            return new JsonResult(new List<string>());
+            return Task.FromResult(new JsonResult(new List<string>()));
 
         var backups = Directory.GetFiles(backupPath).OrderByDescending(x => x).ToList();
-        return new JsonResult(backups);
+        return Task.FromResult(new JsonResult(backups));
     }
 
     private string GetNextServerPath()

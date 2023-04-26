@@ -32,10 +32,10 @@ public class MinecraftServerService
         ServerInstances = new();
         _serversPath = _configuration["ServersPath"];
         _backupsPath = _configuration["BackupsPath"];
-        RestartExistingProcesses().GetAwaiter();
+        RestartExistingProcesses();
     }
 
-    private async Task RestartExistingProcesses()
+    private void RestartExistingProcesses()
     {
         var processes = Process.GetProcessesByName("bedrock_server");
         processes.Where(x => !string.IsNullOrEmpty(x.MainModule?.FileName)).ToList().ForEach(x =>
@@ -45,12 +45,12 @@ public class MinecraftServerService
             var server = _optionsIO.ManagerOptions.Servers.FirstOrDefault(y => y.Path == serverPath);
             if (server == null)
                 return;
-            StartServerInstance(server).GetAwaiter();
+            StartServerInstance(server);
         });
 
         _appLifetime.ApplicationStopping.Register(() =>
         {
-            ServerInstances.ForEach(x => StopServerInstance(x).GetAwaiter());
+            ServerInstances.ForEach(async x => await StopServerInstance(x));
         });
     }
 
