@@ -131,6 +131,73 @@
                                 }
                             </ul>
                             <div class="input-group">
+                                <div class="dropend">
+                                    <button class="btn btn-secondary dropdown-toggle" 
+                                        aria-labelledby="server-command-menu" 
+                                        data-bs-toggle="dropdown" 
+                                        aria-expanded="false" 
+                                        id="server-command-menu-btn" 
+                                        data-bs-auto-close="outside"
+                                        disabled="@(!online)">/</button>
+                                    <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-menu">
+                                        <div class="dropend">
+                                            <button class="dropdown-item dropdown-toggle" 
+                                                aria-labelledby="server-command-give"
+                                                data-bs-toggle="dropdown"
+                                                aria-expanded="false"
+                                                data-bs-auto-close="outside"
+                                                id="server-command-give-btn">
+                                                give
+                                            </button>
+                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-give">
+                                                <div class="dropend">
+                                                    <!-- get online users -->
+                                                    @if(!server.Players.Any(x => x.Online)){
+                                                        <li class="dropdown-item disabled">No players online</li>
+                                                    }
+                                                    @foreach (var player in server.Players.Where(x => x.Online))
+                                                    {
+                                                        <button class="dropdown-item dropdown-toggle" 
+                                                            aria-labelledby="server-command-give-item"
+                                                            data-bs-toggle="dropdown"
+                                                            aria-expanded="false"
+                                                            class="server-command-give-item-btn"
+                                                            data-bs-auto-close="outside"
+                                                            data-player-name="@player.Name">
+                                                            @player.Name
+                                                        </button>
+                                                    }
+
+
+                                                    
+                                                    <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-give-items">
+                                                        <div class="dropdown items-dropdown">
+                                                            <!-- get items -->
+                                                            <input type="text" class="form-control server-command-give-item-search" placeholder="Search" />
+                                                            @foreach (var item in Model.Items)
+                                                            {
+                                                                <button class="dropdown-item dropdown-toggle"
+                                                                    aria-labelledby="server-command-give-amount"
+                                                                    data-bs-toggle="dropdown"
+                                                                    aria-expanded="false"
+                                                                    class="server-command-give-amount-btn"
+                                                                    data-item-id-name="@item.IDName"
+                                                                    >
+                                                                    <img class="item-image" src="/images/@item.Image" />@item.Name
+                                                                </button>
+                                                            }
+                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-give-amounts">
+                                                                <button class="dropdown-item" data-server-path="@server.Path" data-item-amount="1" onclick="giveCommand(this)">1</button>
+                                                                <button class="dropdown-item" data-server-path="@server.Path" data-item-amount="16" onclick="giveCommand(this)">16</button>
+                                                                <button class="dropdown-item" data-server-path="@server.Path" data-item-amount="64" onclick="giveCommand(this)">64</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <input type="text" class="form-control" data-server-path="@server.Path" id="server-command-@server.Path" />
                                 <button class="btn btn-secondary" data-server-path="@server.Path" onclick="sendCommandToHub(@server.Path)" disabled="@(!online)">Send</button>
                             </div>

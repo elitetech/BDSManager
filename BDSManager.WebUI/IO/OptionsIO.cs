@@ -19,7 +19,18 @@ public class OptionsIO
         _serversPath = _configuration["ServersPath"] ?? string.Empty;
         
         CheckServersDirectoryForServers();
+        GetItems();
         UpdateFirstRun();
+    }
+
+    private void GetItems()
+    {
+        // get items from items.json
+        var itemsPath = Path.Combine("wwwroot", "items.json");
+        if (!File.Exists(itemsPath))
+            throw new Exception("items.json not found");
+        
+        ManagerOptions.Items = JsonConvert.DeserializeObject<List<ItemModel>>(File.ReadAllText(itemsPath)).Where(x => !x.IDName.Contains("element_")).ToList();
     }
 
     internal void AddServer(ServerModel server)
