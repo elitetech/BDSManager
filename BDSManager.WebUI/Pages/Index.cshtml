@@ -235,7 +235,7 @@
                                                                 <input type="text" class="form-control server-command-tp-player-x" placeholder="x" />
                                                                 <input type="text" class="form-control server-command-tp-player-y" placeholder="y" />
                                                                 <input type="text" class="form-control server-command-tp-player-z" placeholder="z" />
-                                                                <button class="tp-btn" data-server-path="@server.Path" onclick="tpCommand(this)">go</button>
+                                                                <button class="btn btn-outline-dark tp-btn" data-server-path="@server.Path" onclick="tpCommand(this)">go</button>
                                                             </div>
                                                         </li>
                                                         @foreach (var player in server.Players)
@@ -253,11 +253,76 @@
                                                 </div>
                                             </div>
                                         </div>
-
                                         <!-- Teleport command end -->
 
                                         <!-- Time command -->
-
+                                        <div class="dropend">
+                                            <button class="dropdown-item dropdown-toggle" 
+                                                aria-labelledby="server-command-time"
+                                                data-bs-toggle="dropdown"
+                                                aria-expanded="false"
+                                                data-bs-auto-close="outside"
+                                                id="server-command-time-btn">
+                                                time
+                                            </button>
+                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-time">
+                                                <div class="dropend">
+                                                    <button class="dropdown-item dropdown-toggle" 
+                                                        aria-labelledby="server-command-time-set"
+                                                        data-bs-toggle="dropdown"
+                                                        aria-expanded="false"
+                                                        data-bs-auto-close="outside"
+                                                        id="server-command-time-set-btn">
+                                                        set
+                                                    </button>
+                                                    <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-time-set">
+                                                        <li class="dropdown-item">
+                                                            <div class="input-group" style="min-width: 250px;">
+                                                                <input type="text" class="form-control server-command-time-set" placeholder="ticks" />
+                                                                <button class="btn btn-outline-dark time-btn" data-server-path="@server.Path" onclick="timeSetCommand(this)">go</button>
+                                                            </div>
+                                                        </li>
+                                                        <button class="dropdown-item" data-server-path="@server.Path" data-time="day" onclick="timeSetCommand(this)">day</button>
+                                                        <button class="dropdown-item" data-server-path="@server.Path" data-time="night" onclick="timeSetCommand(this)">night</button>
+                                                        <button class="dropdown-item" data-server-path="@server.Path" data-time="noon" onclick="timeSetCommand(this)">noon</button>
+                                                        <button class="dropdown-item" data-server-path="@server.Path" data-time="midnight" onclick="timeSetCommand(this)">midnight</button>
+                                                    </div>
+                                                </div>
+                                                <div class="dropend">
+                                                    <button class="dropdown-item dropdown-toggle" 
+                                                        aria-labelledby="server-command-time-add"
+                                                        data-bs-toggle="dropdown"
+                                                        aria-expanded="false"
+                                                        data-bs-auto-close="outside"
+                                                        id="server-command-time-add-btn">
+                                                        add
+                                                    </button>
+                                                    <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-time-add">
+                                                        <li class="dropdown-item">
+                                                            <div class="input-group" style="min-width: 250px;">
+                                                                <input type="text" class="form-control server-command-time-add" placeholder="ticks" />
+                                                                <button class="btn btn-outline-dark time-btn" data-server-path="@server.Path" onclick="timeAddCommand(this)">go</button>
+                                                            </div>
+                                                        </li>
+                                                    </div>
+                                                </div>
+                                                <div class="dropend">
+                                                    <button class="dropdown-item dropdown-toggle" 
+                                                        aria-labelledby="server-command-time-query"
+                                                        data-bs-toggle="dropdown"
+                                                        aria-expanded="false"
+                                                        data-bs-auto-close="outside"
+                                                        id="server-command-time-query-btn">
+                                                        query
+                                                    </button>
+                                                    <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-time-query">
+                                                        <button class="dropdown-item" data-server-path="@server.Path" data-query="daytime" onclick="timeQueryCommand(this)">daytime</button>
+                                                        <button class="dropdown-item" data-server-path="@server.Path" data-query="day" onclick="timeQueryCommand(this)">day</button>
+                                                        <button class="dropdown-item" data-server-path="@server.Path" data-query="gametime" onclick="timeQueryCommand(this)">gametime</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                         <!-- Time command end -->
 
                                         <!-- Weather command -->
