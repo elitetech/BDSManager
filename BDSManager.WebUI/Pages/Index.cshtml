@@ -122,9 +122,15 @@
                                     {
                                         foreach (var logEntry in instance.ConsoleOutput)
                                         {
-                                            var timestamp = logEntry.Split(']')[0] + "]";
+                                            var timestamp = "";
+                                            var log = logEntry;
+                                            if (logEntry.StartsWith("[") && logEntry.Contains("]")){
+                                                timestamp = logEntry.Split(']')[0] + "]";
+                                                log = logEntry.Replace(timestamp, "").Trim();
+                                            }
+                                            
                                             <li class="console-line list-group-item" data-bs-toggle="tooltip" data-bs-placement="top" title="@timestamp">
-                                                <span class="console-line-content">@logEntry.Replace(timestamp, "").Trim()</span>
+                                                <span class="console-line-content">@log</span>
                                             </li>
                                         }
                                     }

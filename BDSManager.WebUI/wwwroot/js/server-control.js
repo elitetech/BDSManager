@@ -325,15 +325,19 @@ function sendCommandToHub(path){
 
 function appendConsoleOutput(path, output){
     // separate the timestamp from the output
-    let timestamp = output.split(']')[0] + "]";
-    output = output.replace(timestamp, "").trim();
+    let timestamp = '';
+    if(output.startsWith("[") && output.indexOf("]") > 0){
+        timestamp = output.split(']')[0] + "]";
+        output = output.replace(timestamp, "").trim();
+    }
     let consoleOutput = $(`#console-window-${path}`);
     let logElement = $(`
         <li class="console-line list-group-item" data-bs-toggle="tooltip" data-bs-placement="top" title="${timestamp}">
             <span class="console-line-content">${output}</span>
         </li>`);
     consoleOutput.append(logElement);
-    logElement.tooltip();
+    if (timestamp.length > 0)
+        logElement.tooltip();
     consoleOutput.scrollTop(consoleOutput[0].scrollHeight);
 }
 
