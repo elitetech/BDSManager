@@ -369,6 +369,7 @@ function processControlOutput(path, output){
 
 function setOnlineStatus(path, online){
     $(`#server-status-${path}`).text(online ? "Online" : "Offline").attr("data-server-uptime", online ? new Date() : 0);
+    $(`#server-details-${path}`).find('#server-command-menu-btn').prop('disabled', !online);
 }
 
 function updatePlayerCount(path, playerCount){
@@ -387,6 +388,7 @@ function updatePlayerList(path, playerJson){
             <td>${player.Name}</td>
             <td>${lastSeen}</td>
         </tr>`);
+        $(`button[data-player-name=${player.Name}]`).prop('disabled', !player.Online);
         playerList.append(playerRow);
         $(playerRow).on("contextmenu", function(e){
             e.preventDefault();

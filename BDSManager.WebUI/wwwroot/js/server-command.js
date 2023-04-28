@@ -28,3 +28,23 @@ function filterItems(input){
         }
     });
 }
+
+function tpCommand(button){
+    let path = $(button).attr('data-server-path');
+    //aria-labelledby="server-command-give-item"
+    let player = $('button[aria-labelledby="server-command-tp-player"][aria-expanded="true"]').attr('data-player-name');
+    let target = undefined;
+    if ($(button).attr('class').includes('player-btn')) 
+        target = $(button).attr('data-player-name');
+    
+    if (target == undefined){
+        let x = $(button).parent().find('input.server-command-tp-player-x').val();
+        let y = $(button).parent().find('input.server-command-tp-player-y').val();
+        let z = $(button).parent().find('input.server-command-tp-player-z').val();
+        target = `${x} ${y} ${z}`;
+    }
+
+    $(`input#server-command-${path}`).val(`tp ${player} ${target}`);
+    $('body').click();
+    $(`input#server-command-${path}`).focus();
+}

@@ -140,6 +140,9 @@
                                         data-bs-auto-close="outside"
                                         disabled="@(!online)">/</button>
                                     <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-menu">
+
+                                        <!-- Give command -->
+                                        <!-- give - target - item - amount -->
                                         <div class="dropend">
                                             <button class="dropdown-item dropdown-toggle" 
                                                 aria-labelledby="server-command-give"
@@ -155,21 +158,19 @@
                                                     @if(!server.Players.Any(x => x.Online)){
                                                         <li class="dropdown-item disabled">No players online</li>
                                                     }
-                                                    @foreach (var player in server.Players.Where(x => x.Online))
+                                                    @foreach (var player in server.Players)
                                                     {
                                                         <button class="dropdown-item dropdown-toggle" 
                                                             aria-labelledby="server-command-give-item"
                                                             data-bs-toggle="dropdown"
                                                             aria-expanded="false"
-                                                            class="server-command-give-item-btn"
+                                                            class="server-command-give-item-btn player-btn"
                                                             data-bs-auto-close="outside"
-                                                            data-player-name="@player.Name">
+                                                            data-player-name="@player.Name"
+                                                            disabled="@(!player.Online)">
                                                             @player.Name
                                                         </button>
                                                     }
-
-
-                                                    
                                                     <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-give-items">
                                                         <div class="dropdown items-dropdown">
                                                             <!-- get items -->
@@ -196,6 +197,84 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        <!-- Give command end -->
+
+                                        <!-- Teleport command -->
+                                        <!-- tp - target - destination -->
+                                        <div class="dropend">
+                                            <button class="dropdown-item dropdown-toggle" 
+                                                aria-labelledby="server-command-tp"
+                                                data-bs-toggle="dropdown"
+                                                aria-expanded="false"
+                                                data-bs-auto-close="outside"
+                                                id="server-command-tp-btn">
+                                                teleport
+                                            </button>
+                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-tp">
+                                                <div class="dropend">
+                                                    <!-- get online users -->
+                                                    @if(!server.Players.Any(x => x.Online)){
+                                                        <li class="dropdown-item disabled">No players online</li>
+                                                    }
+                                                    @foreach (var player in server.Players)
+                                                    {
+                                                        <button class="dropdown-item dropdown-toggle" 
+                                                            aria-labelledby="server-command-tp-player"
+                                                            data-bs-toggle="dropdown"
+                                                            aria-expanded="false"
+                                                            class="server-command-tp-player-btn player-btn"
+                                                            data-bs-auto-close="outside"
+                                                            data-player-name="@player.Name"
+                                                            disabled="@(!player.Online)">
+                                                            @player.Name
+                                                        </button>
+                                                    }
+                                                    <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-tp-player">
+                                                        <li class="dropdown-item">
+                                                            <div class="input-group" style="min-width: 250px;">
+                                                                <input type="text" class="form-control server-command-tp-player-x" placeholder="x" />
+                                                                <input type="text" class="form-control server-command-tp-player-y" placeholder="y" />
+                                                                <input type="text" class="form-control server-command-tp-player-z" placeholder="z" />
+                                                                <button class="tp-btn" data-server-path="@server.Path" onclick="tpCommand(this)">go</button>
+                                                            </div>
+                                                        </li>
+                                                        @foreach (var player in server.Players)
+                                                        {
+                                                            <button class="dropdown-item player-btn" 
+                                                                data-server-path="@server.Path" 
+                                                                onclick="tpCommand(this)"
+                                                                data-player-name="@player.Name"
+                                                                disabled="@(!player.Online)">
+                                                                @player.Name
+                                                            </button>
+                                                        }
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Teleport command end -->
+
+                                        <!-- Time command -->
+
+                                        <!-- Time command end -->
+
+                                        <!-- Weather command -->
+
+                                        <!-- Weather command end -->
+
+                                        <!-- Enchant command -->
+
+                                        <!-- Enchant command end -->
+
+                                        <!-- Effect command -->
+
+                                        <!-- Effect command end -->
+
+                                        <!-- Effect command -->
+
+                                        <!-- Effect command end -->
                                     </div>
                                 </div>
                                 <input type="text" class="form-control" data-server-path="@server.Path" id="server-command-@server.Path" />
