@@ -71,6 +71,7 @@ public class BackupAndUpdateService : IHostedService, IDisposable
         var serversCount = _optionsIO.ManagerOptions.Servers.Where(x => x.Backup.BackupEnabled).Count();
         if (serversCount == 0)
             return;
+        var didBackup = false;
         for(var i = 0; i < serversCount; i++)
         {
             var server = _optionsIO.ManagerOptions.Servers.Where(x => x.Backup.BackupEnabled).ElementAt(i);
@@ -83,7 +84,10 @@ public class BackupAndUpdateService : IHostedService, IDisposable
             await _minecraftServerService.BackupServer(server);
             server.Backup.NextBackup = DateTime.Now.AddHours(server.Backup.BackupInterval);
             _serverProperties.SaveBackupSettings(server);
+            didBackup = true;
         }
+        if (didBackup) 
+            _optionsIO.RefreshServers();
         _backingUp = false;
     }
 
@@ -93,6 +97,7 @@ public class BackupAndUpdateService : IHostedService, IDisposable
         var serversCount = _optionsIO.ManagerOptions.Servers.Where(x => x.Update.UpdateEnabled).Count();
         if (serversCount == 0)
             return;
+        var didUpdate = false;
         for(var i = 0; i < serversCount; i++)
         {
             var server = _optionsIO.ManagerOptions.Servers.Where(x => x.Update.UpdateEnabled).ElementAt(i);
@@ -101,7 +106,10 @@ public class BackupAndUpdateService : IHostedService, IDisposable
             await _bdsUpdater.UpdateBedrockServerAsync(server);
             server.Update.NextUpdate = DateTime.Now.AddHours(server.Update.UpdateInterval);
             _serverProperties.SaveUpdateSettings(server);
+            didUpdate = true;
         }
+        if (didUpdate) 
+            _optionsIO.RefreshServers();
         _updating = false;
     }
 }
