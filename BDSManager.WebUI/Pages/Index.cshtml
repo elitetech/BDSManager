@@ -333,6 +333,33 @@
 
                                         <!-- Weather command -->
 
+                                        <div class="dropend">
+                                            <button class="dropdown-item dropdown-toggle" 
+                                                aria-labelledby="server-command-weather"
+                                                data-bs-toggle="dropdown"
+                                                aria-expanded="false"
+                                                data-bs-auto-close="outside"
+                                                id="server-command-weather-btn">
+                                                weather
+                                            </button>
+                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-weather">
+                                                <div class="dropend">
+                                                    <button class="dropdown-item dropdown-toggle" 
+                                                        aria-labelledby="server-command-weather-set"
+                                                        data-bs-toggle="dropdown"
+                                                        aria-expanded="false"
+                                                        data-bs-auto-close="outside"
+                                                        id="server-command-weather-set-btn">
+                                                        set
+                                                    </button>
+                                                    <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-weather-set">
+                                                        <button class="dropdown-item" data-server-path="@server.Path" data-weather="clear" onclick="weatherSetCommand(this)">clear</button>
+                                                        <button class="dropdown-item" data-server-path="@server.Path" data-weather="rain" onclick="weatherSetCommand(this)">rain</button>
+                                                        <button class="dropdown-item" data-server-path="@server.Path" data-weather="thunder" onclick="weatherSetCommand(this)">thunder</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                         <!-- Weather command end -->
 
                                         <!-- Enchant command -->

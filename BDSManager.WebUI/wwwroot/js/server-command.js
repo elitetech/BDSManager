@@ -115,3 +115,16 @@ function timeQueryCommand(button){
     $('body').click();
     $(`input#server-command-${path}`).focus();
 }
+
+function weatherSetCommand(button){
+    let path = $(button).attr('data-server-path');
+    let weather = $(button).attr('data-weather');
+
+    if (weather == undefined){
+        alertToast('Error: Weather not defined!');
+        return;
+    }
+    $(`input#server-command-${path}`).val(`weather ${weather}`);
+    $('body').click();
+    $(`input#server-command-${path}`).focus();
+}
