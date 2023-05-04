@@ -128,3 +128,22 @@ function weatherSetCommand(button){
     $('body').click();
     $(`input#server-command-${path}`).focus();
 }
+
+function enchantPlayerCommand(button){
+    let path = $(button).attr('data-server-path');
+    let enchant = $(button).attr('data-enchantment');
+    let level = $(button).attr('data-enchatment-level');
+    let player = $('button[aria-labelledby="server-command-enchant-player"][aria-expanded="true"]').attr('data-player-name');
+
+    if (enchant == undefined){
+        alertToast('Error: Enchant not defined!');
+        return;
+    }
+    if (level == undefined){
+        alertToast('Error: Level not defined!');
+        return;
+    }
+    $(`input#server-command-${path}`).val(`enchant ${player} ${enchant} ${level}`);
+    $('body').click();
+    $(`input#server-command-${path}`).focus();
+}
