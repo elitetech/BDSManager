@@ -122,9 +122,15 @@
                                     {
                                         foreach (var logEntry in instance.ConsoleOutput)
                                         {
-                                            var timestamp = logEntry.Split(']')[0] + "]";
+                                            var timestamp = "";
+                                            var log = logEntry;
+                                            if (logEntry.StartsWith("[") && logEntry.Contains("]")){
+                                                timestamp = logEntry.Split(']')[0] + "]";
+                                                log = logEntry.Replace(timestamp, "").Trim();
+                                            }
+                                            
                                             <li class="console-line list-group-item" data-bs-toggle="tooltip" data-bs-placement="top" title="@timestamp">
-                                                <span class="console-line-content">@logEntry.Replace(timestamp, "").Trim()</span>
+                                                <span class="console-line-content">@log</span>
                                             </li>
                                         }
                                     }
@@ -140,6 +146,9 @@
                                         data-bs-auto-close="outside"
                                         disabled="@(!online)">/</button>
                                     <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-menu">
+
+                                        <!-- Give command -->
+                                        <!-- give - target - item - amount -->
                                         <div class="dropend">
                                             <button class="dropdown-item dropdown-toggle" 
                                                 aria-labelledby="server-command-give"
@@ -155,21 +164,19 @@
                                                     @if(!server.Players.Any(x => x.Online)){
                                                         <li class="dropdown-item disabled">No players online</li>
                                                     }
-                                                    @foreach (var player in server.Players.Where(x => x.Online))
+                                                    @foreach (var player in server.Players)
                                                     {
                                                         <button class="dropdown-item dropdown-toggle" 
                                                             aria-labelledby="server-command-give-item"
                                                             data-bs-toggle="dropdown"
                                                             aria-expanded="false"
-                                                            class="server-command-give-item-btn"
+                                                            class="server-command-give-item-btn player-btn"
                                                             data-bs-auto-close="outside"
-                                                            data-player-name="@player.Name">
+                                                            data-player-name="@player.Name"
+                                                            disabled="@(!player.Online)">
                                                             @player.Name
                                                         </button>
                                                     }
-
-
-                                                    
                                                     <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-give-items">
                                                         <div class="dropdown items-dropdown">
                                                             <!-- get items -->
@@ -196,6 +203,898 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        <!-- Give command end -->
+
+                                        <!-- Teleport command -->
+                                        <!-- tp - target - destination -->
+                                        <div class="dropend">
+                                            <button class="dropdown-item dropdown-toggle" 
+                                                aria-labelledby="server-command-tp"
+                                                data-bs-toggle="dropdown"
+                                                aria-expanded="false"
+                                                data-bs-auto-close="outside"
+                                                id="server-command-tp-btn">
+                                                teleport
+                                            </button>
+                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-tp">
+                                                <div class="dropend">
+                                                    <!-- get online users -->
+                                                    @if(!server.Players.Any(x => x.Online)){
+                                                        <li class="dropdown-item disabled">No players online</li>
+                                                    }
+                                                    @foreach (var player in server.Players)
+                                                    {
+                                                        <button class="dropdown-item dropdown-toggle" 
+                                                            aria-labelledby="server-command-tp-player"
+                                                            data-bs-toggle="dropdown"
+                                                            aria-expanded="false"
+                                                            class="server-command-tp-player-btn player-btn"
+                                                            data-bs-auto-close="outside"
+                                                            data-player-name="@player.Name"
+                                                            disabled="@(!player.Online)">
+                                                            @player.Name
+                                                        </button>
+                                                    }
+                                                    <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-tp-player">
+                                                        <li class="dropdown-item">
+                                                            <div class="input-group" style="min-width: 250px;">
+                                                                <input type="text" class="form-control server-command-tp-player-x" placeholder="x" />
+                                                                <input type="text" class="form-control server-command-tp-player-y" placeholder="y" />
+                                                                <input type="text" class="form-control server-command-tp-player-z" placeholder="z" />
+                                                                <button class="btn btn-outline-dark tp-btn" data-server-path="@server.Path" onclick="tpCommand(this)">go</button>
+                                                            </div>
+                                                        </li>
+                                                        @foreach (var player in server.Players)
+                                                        {
+                                                            <button class="dropdown-item player-btn" 
+                                                                data-server-path="@server.Path" 
+                                                                onclick="tpCommand(this)"
+                                                                data-player-name="@player.Name"
+                                                                disabled="@(!player.Online)">
+                                                                @player.Name
+                                                            </button>
+                                                        }
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Teleport command end -->
+
+                                        <!-- Time command -->
+                                        <div class="dropend">
+                                            <button class="dropdown-item dropdown-toggle" 
+                                                aria-labelledby="server-command-time"
+                                                data-bs-toggle="dropdown"
+                                                aria-expanded="false"
+                                                data-bs-auto-close="outside"
+                                                id="server-command-time-btn">
+                                                time
+                                            </button>
+                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-time">
+                                                <div class="dropend">
+                                                    <button class="dropdown-item dropdown-toggle" 
+                                                        aria-labelledby="server-command-time-set"
+                                                        data-bs-toggle="dropdown"
+                                                        aria-expanded="false"
+                                                        data-bs-auto-close="outside"
+                                                        id="server-command-time-set-btn">
+                                                        set
+                                                    </button>
+                                                    <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-time-set">
+                                                        <li class="dropdown-item">
+                                                            <div class="input-group" style="min-width: 250px;">
+                                                                <input type="text" class="form-control server-command-time-set" placeholder="ticks" />
+                                                                <button class="btn btn-outline-dark time-btn" data-server-path="@server.Path" onclick="timeSetCommand(this)">go</button>
+                                                            </div>
+                                                        </li>
+                                                        <button class="dropdown-item" data-server-path="@server.Path" data-time="day" onclick="timeSetCommand(this)">day</button>
+                                                        <button class="dropdown-item" data-server-path="@server.Path" data-time="night" onclick="timeSetCommand(this)">night</button>
+                                                        <button class="dropdown-item" data-server-path="@server.Path" data-time="noon" onclick="timeSetCommand(this)">noon</button>
+                                                        <button class="dropdown-item" data-server-path="@server.Path" data-time="midnight" onclick="timeSetCommand(this)">midnight</button>
+                                                    </div>
+                                                </div>
+                                                <div class="dropend">
+                                                    <button class="dropdown-item dropdown-toggle" 
+                                                        aria-labelledby="server-command-time-add"
+                                                        data-bs-toggle="dropdown"
+                                                        aria-expanded="false"
+                                                        data-bs-auto-close="outside"
+                                                        id="server-command-time-add-btn">
+                                                        add
+                                                    </button>
+                                                    <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-time-add">
+                                                        <li class="dropdown-item">
+                                                            <div class="input-group" style="min-width: 250px;">
+                                                                <input type="text" class="form-control server-command-time-add" placeholder="ticks" />
+                                                                <button class="btn btn-outline-dark time-btn" data-server-path="@server.Path" onclick="timeAddCommand(this)">go</button>
+                                                            </div>
+                                                        </li>
+                                                    </div>
+                                                </div>
+                                                <div class="dropend">
+                                                    <button class="dropdown-item dropdown-toggle" 
+                                                        aria-labelledby="server-command-time-query"
+                                                        data-bs-toggle="dropdown"
+                                                        aria-expanded="false"
+                                                        data-bs-auto-close="outside"
+                                                        id="server-command-time-query-btn">
+                                                        query
+                                                    </button>
+                                                    <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-time-query">
+                                                        <button class="dropdown-item" data-server-path="@server.Path" data-query="daytime" onclick="timeQueryCommand(this)">daytime</button>
+                                                        <button class="dropdown-item" data-server-path="@server.Path" data-query="day" onclick="timeQueryCommand(this)">day</button>
+                                                        <button class="dropdown-item" data-server-path="@server.Path" data-query="gametime" onclick="timeQueryCommand(this)">gametime</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Time command end -->
+
+                                        <!-- Weather command -->
+
+                                        <div class="dropend">
+                                            <button class="dropdown-item dropdown-toggle" 
+                                                aria-labelledby="server-command-weather"
+                                                data-bs-toggle="dropdown"
+                                                aria-expanded="false"
+                                                data-bs-auto-close="outside"
+                                                id="server-command-weather-btn">
+                                                weather
+                                            </button>
+                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-weather">
+                                                <div class="dropend">
+                                                    <button class="dropdown-item dropdown-toggle" 
+                                                        aria-labelledby="server-command-weather-set"
+                                                        data-bs-toggle="dropdown"
+                                                        aria-expanded="false"
+                                                        data-bs-auto-close="outside"
+                                                        id="server-command-weather-set-btn">
+                                                        set
+                                                    </button>
+                                                    <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-weather-set">
+                                                        <button class="dropdown-item" data-server-path="@server.Path" data-weather="clear" onclick="weatherSetCommand(this)">clear</button>
+                                                        <button class="dropdown-item" data-server-path="@server.Path" data-weather="rain" onclick="weatherSetCommand(this)">rain</button>
+                                                        <button class="dropdown-item" data-server-path="@server.Path" data-weather="thunder" onclick="weatherSetCommand(this)">thunder</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Weather command end -->
+
+                                        <!-- Enchant command -->
+
+                                        <div class="dropend">
+                                            <button class="dropdown-item dropdown-toggle" 
+                                                aria-labelledby="server-command-enchant"
+                                                data-bs-toggle="dropdown"
+                                                aria-expanded="false"
+                                                data-bs-auto-close="outside"
+                                                id="server-command-enchant-btn">
+                                                enchant
+                                            </button>
+                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant">
+                                                <div class="dropend">
+                                                    <!-- get online users -->
+                                                    @if(!server.Players.Any(x => x.Online)){
+                                                        <li class="dropdown-item disabled">No players online</li>
+                                                    }
+                                                    @foreach (var player in server.Players)
+                                                    {
+                                                        <button class="dropdown-item dropdown-toggle" 
+                                                            aria-labelledby="server-command-enchant-player"
+                                                            data-bs-toggle="dropdown"
+                                                            aria-expanded="false"
+                                                            class="server-command-enchant-player-btn player-btn"
+                                                            data-bs-auto-close="outside"
+                                                            data-player-name="@player.Name"
+                                                            disabled="@(!player.Online)">
+                                                            @player.Name
+                                                        </button>
+                                                    }
+
+                                                    <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-player">
+                                                        <!-- mending -->
+                                                        <div class="dropend">
+                                                            <div class="dropdown-item dropdown-toggle" 
+                                                                aria-labelledby="server-command-enchant-mending"
+                                                                data-bs-toggle="dropdown"
+                                                                aria-expanded="false"
+                                                                data-bs-auto-close="outside"
+                                                                id="server-command-enchant-mending-btn">
+                                                                mending
+                                                                <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-mending">
+                                                                    <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="mending" data-enchatment-level="1" onclick="enchantPlayerCommand(this)">1</li>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <!-- unbreaking -->
+                                                        <div class="dropend">
+                                                            <div class="dropdown-item dropdown-toggle" 
+                                                                aria-labelledby="server-command-enchant-unbreaking"
+                                                                data-bs-toggle="dropdown"
+                                                                aria-expanded="false"
+                                                                data-bs-auto-close="outside"
+                                                                id="server-command-enchant-unbreaking-btn">
+                                                                unbreaking
+                                                                <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-unbreaking">
+                                                                    <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="unbreaking" data-enchatment-level="1" onclick="enchantPlayerCommand(this)">1</li>
+                                                                    <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="unbreaking" data-enchatment-level="2" onclick="enchantPlayerCommand(this)">2</li>
+                                                                    <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="unbreaking" data-enchatment-level="3" onclick="enchantPlayerCommand(this)">3</li>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+
+                                                        <!-- general armor -->
+                                                        <div class="dropend">
+                                                            <div class="dropdown-item dropdown-toggle" 
+                                                                aria-labelledby="server-command-enchant-armor"
+                                                                data-bs-toggle="dropdown"
+                                                                aria-expanded="false"
+                                                                data-bs-auto-close="outside"
+                                                                id="server-command-enchant-armor-btn">
+                                                                armor
+                                                                <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-armor">
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-armor-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-armor-enchantment-btn">
+                                                                            blast protection
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-armor-enchantment">
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="blast_protection" data-enchatment-level="1" onclick="enchantPlayerCommand(this)">1</li>
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="blast_protection" data-enchatment-level="2" onclick="enchantPlayerCommand(this)">2</li>
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="blast_protection" data-enchatment-level="3" onclick="enchantPlayerCommand(this)">3</li>
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="blast_protection" data-enchatment-level="4" onclick="enchantPlayerCommand(this)">4</li>
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="blast_protection" data-enchatment-level="5" onclick="enchantPlayerCommand(this)">5</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-armor-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-armor-enchantment-btn">
+                                                                            fire protection
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-armor-enchantment">
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="fire_protection" data-enchatment-level="1" onclick="enchantPlayerCommand(this)">1</li>
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="fire_protection" data-enchatment-level="2" onclick="enchantPlayerCommand(this)">2</li>
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="fire_protection" data-enchatment-level="3" onclick="enchantPlayerCommand(this)">3</li>
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="fire_protection" data-enchatment-level="4" onclick="enchantPlayerCommand(this)">4</li>
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="fire_protection" data-enchatment-level="5" onclick="enchantPlayerCommand(this)">5</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-armor-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-armor-enchantment-btn">
+                                                                            projectile protection
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-armor-enchantment">
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="projectile_protection" data-enchatment-level="1" onclick="enchantPlayerCommand(this)">1</li>
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="projectile_protection" data-enchatment-level="2" onclick="enchantPlayerCommand(this)">2</li>
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="projectile_protection" data-enchatment-level="3" onclick="enchantPlayerCommand(this)">3</li>
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="projectile_protection" data-enchatment-level="4" onclick="enchantPlayerCommand(this)">4</li>
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="projectile_protection" data-enchatment-level="5" onclick="enchantPlayerCommand(this)">5</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-armor-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-armor-enchantment-btn">
+                                                                            protection
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-armor-enchantment">
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="protection" ddata-enchatment-level="1" onclick="enchantPlayerCommand(this)">1</li>
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="protection" data-enchatment-level="2" onclick="enchantPlayerCommand(this)">2</li>
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="protection" data-enchatment-level="3" onclick="enchantPlayerCommand(this)">3</li>
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="protection" data-enchatment-level="4" onclick="enchantPlayerCommand(this)">4</li>
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="protection" data-enchatment-level="5" onclick="enchantPlayerCommand(this)">5</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-armor-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-armor-enchantment-btn">
+                                                                            thorns
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-armor-enchantment">
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="thorns" data-enchatment-level="1" onclick="enchantPlayerCommand(this)">1</li>
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="thorns" data-enchatment-level="2" onclick="enchantPlayerCommand(this)">2</li>
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="thorns" data-enchatment-level="3" onclick="enchantPlayerCommand(this)">3</li>
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="thorns" data-enchatment-level="4" onclick="enchantPlayerCommand(this)">4</li>
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="thorns" data-enchatment-level="5" onclick="enchantPlayerCommand(this)">5</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <!-- curses -->
+                                                        <div class="dropend">
+                                                            <div class="dropdown-item dropdown-toggle"
+                                                                aria-labelledby="server-command-enchant-helmet"
+                                                                data-bs-toggle="dropdown"
+                                                                aria-expanded="false"
+                                                                data-bs-auto-close="outside"
+                                                                id="server-command-enchant-helmet-btn">
+                                                                curses
+                                                                <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-helmet">
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-helmet-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-helmet-enchantment-btn">
+                                                                            curse of binding
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-helmet-enchantment">
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="binding_curse" data-enchatment-level="1" onclick="enchantPlayerCommand(this)">1</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-helmet-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-helmet-enchantment-btn">
+                                                                            curse of vanishing
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-helmet-enchantment">
+                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-enchantment="vanishing_curse" data-enchatment-level="1" onclick="enchantPlayerCommand(this)">1</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+
+
+                                                        <!-- helmet -->
+                                                        <div class="dropend">
+                                                            <div class="dropdown-item dropdown-toggle"
+                                                                aria-labelledby="server-command-enchant-helmet"
+                                                                data-bs-toggle="dropdown"
+                                                                aria-expanded="false"
+                                                                data-bs-auto-close="outside"
+                                                                id="server-command-enchant-helmet-btn">
+                                                                helmet
+                                                                <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-helmet">
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-helmet-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-helmet-enchantment-btn">
+                                                                            aqua affinity
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-helmet-enchantment">
+                                                                                <li class="dropdown-item" data-enchantment="aqua_affinity" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-helmet-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-helmet-enchantment-btn">
+                                                                            respiration
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-helmet-enchantment">
+                                                                                <li class="dropdown-item" data-enchantment="respiration" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                                <li class="dropdown-item" data-enchantment="respiration" data-enchatment-level="2" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">2</li>
+                                                                                <li class="dropdown-item" data-enchantment="respiration" data-enchatment-level="3" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">3</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- leggings -->
+                                                        <div class="dropend">
+                                                            <div class="dropdown-item dropdown-toggle"
+                                                                aria-labelledby="server-command-enchant-leggings"
+                                                                data-bs-toggle="dropdown"
+                                                                aria-expanded="false"
+                                                                data-bs-auto-close="outside"
+                                                                id="server-command-enchant-leggings-btn">
+                                                                leggings
+                                                                <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-leggings">
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-leggings-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-leggings-enchantment-btn">
+                                                                            swift sneak
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-leggings-enchantment">
+                                                                                <li class="dropdown-item" data-enchantment="swift_sneak" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                                <li class="dropdown-item" data-enchantment="swift_sneak" data-enchatment-level="2" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">2</li>
+                                                                                <li class="dropdown-item" data-enchantment="swift_sneak" data-enchatment-level="3" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">3</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- boots -->
+                                                        <div class="dropend">
+                                                            <div class="dropdown-item dropdown-toggle"
+                                                                aria-labelledby="server-command-enchant-boots"
+                                                                data-bs-toggle="dropdown"
+                                                                aria-expanded="false"
+                                                                data-bs-auto-close="outside"
+                                                                id="server-command-enchant-boots-btn">
+                                                                boots
+                                                                <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-boots">
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-boots-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-boots-enchantment-btn">
+                                                                            depth strider
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-boots-enchantment">
+                                                                                <li class="dropdown-item" data-enchantment="depth_strider" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                                <li class="dropdown-item" data-enchantment="depth_strider" data-enchatment-level="2" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">2</li>
+                                                                                <li class="dropdown-item" data-enchantment="depth_strider" data-enchatment-level="3" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">3</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-boots-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-boots-enchantment-btn">
+                                                                            feather falling
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-boots-enchantment">
+                                                                                <li class="dropdown-item" data-enchantment="feather_falling" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                                <li class="dropdown-item" data-enchantment="feather_falling" data-enchatment-level="2" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">2</li>
+                                                                                <li class="dropdown-item" data-enchantment="feather_falling" data-enchatment-level="3" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">3</li>
+                                                                                <li class="dropdown-item" data-enchantment="feather_falling" data-enchatment-level="4" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">4</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-boots-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-boots-enchantment-btn">
+                                                                            frost walker
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-boots-enchantment">
+                                                                                <li class="dropdown-item" data-enchantment="frost_walker" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                                <li class="dropdown-item" data-enchantment="frost_walker" data-enchatment-level="2" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">2</li>
+                                                                                <li class="dropdown-item" data-enchantment="frost_walker" data-enchatment-level="3" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">3</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-boots-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-boots-enchantment-btn">
+                                                                            soul speed
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-boots-enchantment">
+                                                                                <li class="dropdown-item" data-enchantment="soul_speed" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                                <li class="dropdown-item" data-enchantment="soul_speed" data-enchatment-level="2" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">2</li>
+                                                                                <li class="dropdown-item" data-enchantment="soul_speed" data-enchatment-level="3" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">3</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <!-- tools -->
+                                                        <div class="dropend">
+                                                            <div class="dropdown-item dropdown-toggle"
+                                                                aria-labelledby="server-command-enchant-tools"
+                                                                data-bs-toggle="dropdown"
+                                                                aria-expanded="false"
+                                                                data-bs-auto-close="outside"
+                                                                id="server-command-enchant-tools-btn">
+                                                                tools
+                                                                <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-tools">
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-tools-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-tools-enchantment-btn">
+                                                                            efficiency
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-tools-enchantment">
+                                                                                <li class="dropdown-item" data-enchantment="efficiency" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                                <li class="dropdown-item" data-enchantment="efficiency" data-enchatment-level="2" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">2</li>
+                                                                                <li class="dropdown-item" data-enchantment="efficiency" data-enchatment-level="3" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">3</li>
+                                                                                <li class="dropdown-item" data-enchantment="efficiency" data-enchatment-level="4" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">4</li>
+                                                                                <li class="dropdown-item" data-enchantment="efficiency" data-enchatment-level="5" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">5</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-tools-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-tools-enchantment-btn">
+                                                                            fortune
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-tools-enchantment">
+                                                                                <li class="dropdown-item" data-enchantment="fortune" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                                <li class="dropdown-item" data-enchantment="fortune" data-enchatment-level="2" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">2</li>
+                                                                                <li class="dropdown-item" data-enchantment="fortune" data-enchatment-level="3" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">3</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-tools-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-tools-enchantment-btn">
+                                                                            silk touch
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-tools-enchantment">
+                                                                                <li class="dropdown-item" data-enchantment="silk_touch" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- sword -->
+                                                        <div class="dropend">
+                                                            <div class="dropdown-item dropdown-toggle"
+                                                                aria-labelledby="server-command-enchant-sword"
+                                                                data-bs-toggle="dropdown"
+                                                                aria-expanded="false"
+                                                                data-bs-auto-close="outside"
+                                                                id="server-command-enchant-sword-btn">
+                                                                sword
+                                                                <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-sword">
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-sword-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-sword-enchantment-btn">
+                                                                            bane of arthropods
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-sword-enchantment">
+                                                                                <li class="dropdown-item" data-enchantment="bane_of_arthropods" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                                <li class="dropdown-item" data-enchantment="bane_of_arthropods" data-enchatment-level="2" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">2</li>
+                                                                                <li class="dropdown-item" data-enchantment="bane_of_arthropods" data-enchatment-level="3" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">3</li>
+                                                                                <li class="dropdown-item" data-enchantment="bane_of_arthropods" data-enchatment-level="4" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">4</li>
+                                                                                <li class="dropdown-item" data-enchantment="bane_of_arthropods" data-enchatment-level="5" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">5</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-sword-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-sword-enchantment-btn">
+                                                                            fire aspect
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-sword-enchantment">
+                                                                                <li class="dropdown-item" data-enchantment="fire_aspect" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                                <li class="dropdown-item" data-enchantment="fire_aspect" data-enchatment-level="2" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">2</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-sword-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-sword-enchantment-btn">
+                                                                            knockback
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-sword-enchantment">
+                                                                                <li class="dropdown-item" data-enchantment="knockback" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                                <li class="dropdown-item" data-enchantment="knockback" data-enchatment-level="2" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">2</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-sword-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-sword-enchantment-btn">
+                                                                            looting
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-sword-enchantment">
+                                                                                <li class="dropdown-item" data-enchantment="looting" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                                <li class="dropdown-item" data-enchantment="looting" data-enchatment-level="2" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">2</li>
+                                                                                <li class="dropdown-item" data-enchantment="looting" data-enchatment-level="3" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">3</li>
+                                                                                <li class="dropdown-item" data-enchantment="looting" data-enchatment-level="4" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">4</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-sword-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-sword-enchantment-btn">
+                                                                            sharpness
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-sword-enchantment">
+                                                                                <li class="dropdown-item" data-enchantment="sharpness" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                                <li class="dropdown-item" data-enchantment="sharpness" data-enchatment-level="2" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">2</li>
+                                                                                <li class="dropdown-item" data-enchantment="sharpness" data-enchatment-level="3" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">3</li>
+                                                                                <li class="dropdown-item" data-enchantment="sharpness" data-enchatment-level="4" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">4</li>
+                                                                                <li class="dropdown-item" data-enchantment="sharpness" data-enchatment-level="5" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">5</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="dropend">
+                                                                        <div class="dropdown-item dropdown-toggle"
+                                                                            aria-labelledby="server-command-enchant-sword-enchantment"
+                                                                            data-bs-toggle="dropdown"
+                                                                            aria-expanded="false"
+                                                                            data-bs-auto-close="outside"
+                                                                            id="server-command-enchant-sword-enchantment-btn">
+                                                                            smite
+                                                                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-sword-enchantment">
+                                                                                <li class="dropdown-item" data-enchantment="smite" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                                <li class="dropdown-item" data-enchantment="smite" data-enchatment-level="2" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">2</li>
+                                                                                <li class="dropdown-item" data-enchantment="smite" data-enchatment-level="3" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">3</li>
+                                                                                <li class="dropdown-item" data-enchantment="smite" data-enchatment-level="4" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">4</li>
+                                                                                <li class="dropdown-item" data-enchantment="smite" data-enchatment-level="5" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">5</li>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- bow -->
+                                                        <div class="dropend">
+                                                            <div class="dropdown-item dropdown-toggle"
+                                                                aria-labelledby="server-command-enchant-bow"
+                                                                data-bs-toggle="dropdown"
+                                                                aria-expanded="false"
+                                                                data-bs-auto-close="outside"
+                                                                id="server-command-enchant-bow-btn">
+                                                                bow
+                                                            </div>
+                                                            <div class="dropdown-menu dropdown-menu-dark" aria-labelledby="server-command-enchant-bow">
+                                                                <div class="dropend">
+                                                                    <div class="dropdown-item dropdown-toggle"
+                                                                        aria-labelledby="server-command-enchant-bow-enchantment"
+                                                                        data-bs-toggle="dropdown"
+                                                                        aria-expanded="false"
+                                                                        data-bs-auto-close="outside"
+                                                                        id="server-command-enchant-bow-enchantment-btn">
+                                                                        flame
+                                                                        <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-bow-enchantment">
+                                                                            <li class="dropdown-item" data-enchantment="flame" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="dropend">
+                                                                    <div class="dropdown-item dropdown-toggle"
+                                                                        aria-labelledby="server-command-enchant-bow-enchantment"
+                                                                        data-bs-toggle="dropdown"
+                                                                        aria-expanded="false"
+                                                                        data-bs-auto-close="outside"
+                                                                        id="server-command-enchant-bow-enchantment-btn">
+                                                                        infinity
+                                                                        <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-bow-enchantment">
+                                                                            <li class="dropdown-item" data-enchantment="infinity" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="dropend">
+                                                                    <div class="dropdown-item dropdown-toggle"
+                                                                        aria-labelledby="server-command-enchant-bow-enchantment"
+                                                                        data-bs-toggle="dropdown"
+                                                                        aria-expanded="false"
+                                                                        data-bs-auto-close="outside"
+                                                                        id="server-command-enchant-bow-enchantment-btn">
+                                                                        power
+                                                                        <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-bow-enchantment">
+                                                                            <li class="dropdown-item" data-enchantment="power" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                            <li class="dropdown-item" data-enchantment="power" data-enchatment-level="2" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">2</li>
+                                                                            <li class="dropdown-item" data-enchantment="power" data-enchatment-level="3" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">3</li>
+                                                                            <li class="dropdown-item" data-enchantment="power" data-enchatment-level="4" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">4</li>
+                                                                            <li class="dropdown-item" data-enchantment="power" data-enchatment-level="5" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">5</li>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="dropend">
+                                                                    <div class="dropdown-item dropdown-toggle"
+                                                                        aria-labelledby="server-command-enchant-bow-enchantment"
+                                                                        data-bs-toggle="dropdown"
+                                                                        aria-expanded="false"
+                                                                        data-bs-auto-close="outside"
+                                                                        id="server-command-enchant-bow-enchantment-btn">
+                                                                        punch
+                                                                        <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-bow-enchantment">
+                                                                            <li class="dropdown-item" data-enchantment="punch" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                            <li class="dropdown-item" data-enchantment="punch" data-enchatment-level="2" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">2</li>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- crossbow -->
+                                                        <div class="dropend">
+                                                            <div class="dropdown-item dropdown-toggle"
+                                                                aria-labelledby="server-command-enchant-crossbow"
+                                                                data-bs-toggle="dropdown"
+                                                                aria-expanded="false"
+                                                                data-bs-auto-close="outside"
+                                                                id="server-command-enchant-crossbow-btn">
+                                                                crossbow
+                                                            </div>
+                                                            <div class="dropdown-menu dropdown-menu-dark" aria-labelledby="server-command-enchant-crossbow">
+                                                                <div class="dropend">
+                                                                    <div class="dropdown-item dropdown-toggle"
+                                                                        aria-labelledby="server-command-enchant-crossbow-enchantment"
+                                                                        data-bs-toggle="dropdown"
+                                                                        aria-expanded="false"
+                                                                        data-bs-auto-close="outside"
+                                                                        id="server-command-enchant-crossbow-enchantment-btn">
+                                                                        multishot
+                                                                        <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-crossbow-enchantment">
+                                                                            <li class="dropdown-item" data-enchantment="multishot" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="dropend">
+                                                                    <div class="dropdown-item dropdown-toggle"
+                                                                        aria-labelledby="server-command-enchant-crossbow-enchantment"
+                                                                        data-bs-toggle="dropdown"
+                                                                        aria-expanded="false"
+                                                                        data-bs-auto-close="outside"
+                                                                        id="server-command-enchant-crossbow-enchantment-btn">
+                                                                        piercing
+                                                                        <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-crossbow-enchantment">
+                                                                            <li class="dropdown-item" data-enchantment="piercing" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                            <li class="dropdown-item" data-enchantment="piercing" data-enchatment-level="2" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">2</li>
+                                                                            <li class="dropdown-item" data-enchantment="piercing" data-enchatment-level="3" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">3</li>
+                                                                            <li class="dropdown-item" data-enchantment="piercing" data-enchatment-level="4" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">4</li>
+                                                                            <li class="dropdown-item" data-enchantment="piercing" data-enchatment-level="5" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">5</li>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="dropend">
+                                                                    <div class="dropdown-item dropdown-toggle"
+                                                                        aria-labelledby="server-command-enchant-crossbow-enchantment"
+                                                                        data-bs-toggle="dropdown"
+                                                                        aria-expanded="false"
+                                                                        data-bs-auto-close="outside"
+                                                                        id="server-command-enchant-crossbow-enchantment-btn">
+                                                                        quick_charge
+                                                                        <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-crossbow-enchantment">
+                                                                            <li class="dropdown-item" data-enchantment="quick_charge" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                            <li class="dropdown-item" data-enchantment="quick_charge" data-enchatment-level="2" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">2</li>
+                                                                            <li class="dropdown-item" data-enchantment="quick_charge" data-enchatment-level="3" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">3</li>
+                                                                            <li class="dropdown-item" data-enchantment="quick_charge" data-enchatment-level="4" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">4</li>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- trident -->
+                                                        <div class="dropend">
+                                                            <div class="dropdown-item dropdown-toggle"
+                                                                aria-labelledby="server-command-enchant-trident"
+                                                                data-bs-toggle="dropdown"
+                                                                aria-expanded="false"
+                                                                data-bs-auto-close="outside"
+                                                                id="server-command-enchant-trident-btn">
+                                                                trident
+                                                            </div>
+                                                            <div class="dropdown-menu dropdown-menu-dark" aria-labelledby="server-command-enchant-trident">
+                                                                <div class="dropend">
+                                                                    <div class="dropdown-item dropdown-toggle"
+                                                                        aria-labelledby="server-command-enchant-trident-enchantment"
+                                                                        data-bs-toggle="dropdown"
+                                                                        aria-expanded="false"
+                                                                        data-bs-auto-close="outside"
+                                                                        id="server-command-enchant-trident-enchantment-btn">
+                                                                        channeling
+                                                                        <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-trident-enchantment">
+                                                                            <li class="dropdown-item" data-enchantment="channeling" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="dropend">
+                                                                    <div class="dropdown-item dropdown-toggle"
+                                                                        aria-labelledby="server-command-enchant-trident-enchantment"
+                                                                        data-bs-toggle="dropdown"
+                                                                        aria-expanded="false"
+                                                                        data-bs-auto-close="outside"
+                                                                        id="server-command-enchant-trident-enchantment-btn">
+                                                                        impaling
+                                                                        <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-trident-enchantment">
+                                                                            <li class="dropdown-item" data-enchantment="impaling" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                            <li class="dropdown-item" data-enchantment="impaling" data-enchatment-level="2" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">2</li>
+                                                                            <li class="dropdown-item" data-enchantment="impaling" data-enchatment-level="3" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">3</li>
+                                                                            <li class="dropdown-item" data-enchantment="impaling" data-enchatment-level="4" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">4</li>
+                                                                            <li class="dropdown-item" data-enchantment="impaling" data-enchatment-level="5" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">5</li>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="dropend">
+                                                                    <div class="dropdown-item dropdown-toggle"
+                                                                        aria-labelledby="server-command-enchant-trident-enchantment"
+                                                                        data-bs-toggle="dropdown"
+                                                                        aria-expanded="false"
+                                                                        data-bs-auto-close="outside"
+                                                                        id="server-command-enchant-trident-enchantment-btn">
+                                                                        loyalty
+                                                                        <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-trident-enchantment">
+                                                                            <li class="dropdown-item" data-enchantment="loyalty" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                            <li class="dropdown-item" data-enchantment="loyalty" data-enchatment-level="2" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">2</li>
+                                                                            <li class="dropdown-item" data-enchantment="loyalty" data-enchatment-level="3" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">3</li>
+                                                                            <li class="dropdown-item" data-enchantment="loyalty" data-enchatment-level="4" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">4</li>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="dropend">
+                                                                    <div class="dropdown-item dropdown-toggle"
+                                                                        aria-labelledby="server-command-enchant-trident-enchantment"
+                                                                        data-bs-toggle="dropdown"
+                                                                        aria-expanded="false"
+                                                                        data-bs-auto-close="outside"
+                                                                        id="server-command-enchant-trident-enchantment-btn">
+                                                                        riptide
+                                                                        <div class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-enchant-trident-enchantment">
+                                                                            <li class="dropdown-item" data-enchantment="riptide" data-enchatment-level="1" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">1</li>
+                                                                            <li class="dropdown-item" data-enchantment="riptide" data-enchatment-level="2" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">2</li>
+                                                                            <li class="dropdown-item" data-enchantment="riptide" data-enchatment-level="3" data-server-path="@server.Path" onclick="enchantPlayerCommand(this)">3</li>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Enchant command end -->
+
+                                        <!-- Effect command -->
+
+                                        <!-- Effect command end -->
                                     </div>
                                 </div>
                                 <input type="text" class="form-control" data-server-path="@server.Path" id="server-command-@server.Path" />

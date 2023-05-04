@@ -325,15 +325,19 @@ function sendCommandToHub(path){
 
 function appendConsoleOutput(path, output){
     // separate the timestamp from the output
-    let timestamp = output.split(']')[0] + "]";
-    output = output.replace(timestamp, "").trim();
+    let timestamp = '';
+    if(output.startsWith("[") && output.indexOf("]") > 0){
+        timestamp = output.split(']')[0] + "]";
+        output = output.replace(timestamp, "").trim();
+    }
     let consoleOutput = $(`#console-window-${path}`);
     let logElement = $(`
         <li class="console-line list-group-item" data-bs-toggle="tooltip" data-bs-placement="top" title="${timestamp}">
             <span class="console-line-content">${output}</span>
         </li>`);
     consoleOutput.append(logElement);
-    logElement.tooltip();
+    if (timestamp.length > 0)
+        logElement.tooltip();
     consoleOutput.scrollTop(consoleOutput[0].scrollHeight);
 }
 
@@ -369,6 +373,7 @@ function processControlOutput(path, output){
 
 function setOnlineStatus(path, online){
     $(`#server-status-${path}`).text(online ? "Online" : "Offline").attr("data-server-uptime", online ? new Date() : 0);
+    $(`#server-details-${path}`).find('#server-command-menu-btn').prop('disabled', !online);
 }
 
 function updatePlayerCount(path, playerCount){
@@ -387,6 +392,7 @@ function updatePlayerList(path, playerJson){
             <td>${player.Name}</td>
             <td>${lastSeen}</td>
         </tr>`);
+        $(`button[data-player-name=${player.Name}]`).prop('disabled', !player.Online);
         playerList.append(playerRow);
         $(playerRow).on("contextmenu", function(e){
             e.preventDefault();
