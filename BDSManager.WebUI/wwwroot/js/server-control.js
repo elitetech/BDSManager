@@ -392,7 +392,7 @@ function updatePlayerList(path, playerJson){
             <td>${player.Name}</td>
             <td>${lastSeen}</td>
         </tr>`);
-        $(`button[data-player-name=${player.Name}]`).prop('disabled', !player.Online);
+        $(`button[data-player-name="${player.Name}"]`).prop('disabled', !player.Online);
         playerList.append(playerRow);
         $(playerRow).on("contextmenu", function(e){
             e.preventDefault();
