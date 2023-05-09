@@ -8,8 +8,8 @@ $(document).ready(function () {
 function giveCommand(button){
     let path = $(button).attr('data-server-path');
     //aria-labelledby="server-command-give-item"
-    let player = $('button[aria-labelledby="server-command-give-item"][aria-expanded="true"]').attr('data-player-name');
-    let item = $('button[aria-labelledby="server-command-give-amount"][aria-expanded="true"]').attr('data-item-id-name');
+    let player = $(button).attr('data-player-name');
+    let item = $(button).attr('data-item-id-name');
     let amount = $(button).attr('data-item-amount');
     if (player == undefined && item == undefined){
         alertToast('Error: Player and Item not defined!')
@@ -30,7 +30,9 @@ function giveCommand(button){
 
 function filterItems(input){
     let filter = $(input).val();
-    let items = $('button[aria-labelledby="server-command-give-amount"]');
+    let items = $('li.give-item');
+    console.log(filter);
+    console.log(items);
     items.each(function(i, item){
         let itemName = $(item).attr('data-item-id-name');
         if(itemName.includes(filter)){
@@ -44,30 +46,30 @@ function filterItems(input){
 function tpCommand(button){
     let path = $(button).attr('data-server-path');
     //aria-labelledby="server-command-give-item"
-    let player = $('button[aria-labelledby="server-command-tp-player"][aria-expanded="true"]').attr('data-player-name');
-    let target = undefined;
+    let target = $(button).attr('data-player-name');
+    let destination = undefined;
     if ($(button).attr('class').includes('player-btn')) 
-        target = $(button).attr('data-player-name');
+        destination = $(button).attr('data-destination-player-name');
     
-    if (target == undefined){
+    if (destination == undefined){
         let x = $(button).parent().find('input.server-command-tp-player-x').val();
         let y = $(button).parent().find('input.server-command-tp-player-y').val();
         let z = $(button).parent().find('input.server-command-tp-player-z').val();
-        target = `${x} ${y} ${z}`;
+        destination = `${x} ${y} ${z}`;
     }
-    if (player == undefined && target == undefined){
+    if (target == undefined && destination == undefined){
         alertToast('Error: Player and Target not defined!')
         return;
     }
-    if (player == undefined){
+    if (target == undefined){
         alertToast('Error: Player not defined!');
         return;
     }
-    if (target == undefined){
+    if (destination == undefined){
         alertToast('Error: Target not defined!');
         return;
     }
-    $(`input#server-command-${path}`).val(`tp ${player} ${target}`);
+    $(`input#server-command-${path}`).val(`tp ${target} ${destination}`);
     $('body').click();
     $(`input#server-command-${path}`).focus();
 }
@@ -129,11 +131,11 @@ function weatherSetCommand(button){
     $(`input#server-command-${path}`).focus();
 }
 
-function enchantPlayerCommand(button){
+function enchantmentCommand(button){
     let path = $(button).attr('data-server-path');
-    let enchant = $(button).attr('data-enchantment');
-    let level = $(button).attr('data-enchatment-level');
-    let player = $('button[aria-labelledby="server-command-enchant-player"][aria-expanded="true"]').attr('data-player-name');
+    let enchant = $(button).attr('data-enchantment-id');
+    let level = $(button).attr('data-enchantment-level');
+    let player = $(button).attr('data-player-name');
 
     if (enchant == undefined){
         alertToast('Error: Enchant not defined!');
@@ -144,6 +146,29 @@ function enchantPlayerCommand(button){
         return;
     }
     $(`input#server-command-${path}`).val(`enchant ${player} ${enchant} ${level}`);
+    $('body').click();
+    $(`input#server-command-${path}`).focus();
+}
+
+function effectCommand(button){
+    let path = $(button).attr('data-server-path');
+    let effect = $(button).attr('data-effect-id');
+    let duration = $(button).parent().find('input.server-command-effect-player-duration').val();
+    let amplifier = $(button).parent().find('input.server-command-effect-player-amplifier').val();
+    let showParticles = $(button).parent().find('input.server-command-effect-player-show-particles').is(':checked');
+    let player = $(button).attr('data-player-name');
+
+    if (effect == undefined){
+        alertToast('Error: Effect not defined!');
+        return;
+    }
+    if (duration == undefined){
+        duration = 30;
+    }
+    if (amplifier == undefined){
+        amplifier = 1;
+    }
+    $(`input#server-command-${path}`).val(`effect ${player} ${effect} ${duration} ${amplifier} ${showParticles}`);
     $('body').click();
     $(`input#server-command-${path}`).focus();
 }
