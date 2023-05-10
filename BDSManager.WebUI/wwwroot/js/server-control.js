@@ -99,7 +99,7 @@ $(document).ready(function () {
 });
 
 function setUptime() {
-    var serverRows = $('tr.server-row');
+    let serverRows = $('tr.server-row');
     serverRows.each(function () {
         let status = $(this).find('.server-status');
         if(!status || status.text() == 'Offline') return;
@@ -314,7 +314,7 @@ function checkForUpdates(path){
 }
 
 function sendCommandToHub(path){
-    let input = $(`#server-command-${String(path).padStart(2, '0')}`);
+    let input = $(`#server-command-${path}`);
     let command = input.val();
     if (!command || command.length === 0) 
         return;
@@ -386,13 +386,17 @@ function updatePlayerList(path, playerJson){
     if(playerList.length > 0)
         playerList.empty();
     players.forEach(player => {
-        let lastSeen = player.Online ? "Now" : new Date(player.LastSeen).getDate() == new Date().getDate() ? new Date(player.LastSeen).toLocaleTimeString() : new Date(player.LastSeen).toLocaleDateString();
+        let lastSeenDate = new Date(player.LastSeen).getDate() == new Date().getDate() ? new Date(player.LastSeen).toLocaleTimeString() : new Date(player.LastSeen).toLocaleDateString();
+        let lastSeen = player.Online ? "Now" : lastSeenDate;
         let playerRow = $(`
         <tr class="player-row" data-player-xuid="${player.XUID}" data-player-name="${player.Name}" data-server-path="${path}">
             <td>${player.Name}</td>
             <td>${lastSeen}</td>
         </tr>`);
-        $(`button[data-player-name="${player.Name}"]`).prop('disabled', !player.Online);
+        if(player.Online)
+            $(`li[data-player-name="${player.Name}"]`).removeClass("disabled");
+        else
+            $(`li[data-player-name="${player.Name}"]`).addClass("disabled");
         playerList.append(playerRow);
         $(playerRow).on("contextmenu", function(e){
             e.preventDefault();

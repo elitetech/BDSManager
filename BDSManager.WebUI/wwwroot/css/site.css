@@ -62,3 +62,30 @@ body {
   max-height: 300px;
   overflow-y: scroll;
 }
+
+.effects-dropdown{
+  min-width: 270px;
+  max-height: 300px;
+  overflow-y: scroll;
+}
+
+.enchantments-dropdown{
+  max-height: 300px;
+  overflow-y: scroll;
+}
+
+.effect-group{
+  min-width: 250px;
+}
+
+.server-command-effect-player-hide-particles{
+  height: 2em;
+}
+
+.form-switch .form-check-input{
+  width: 3em;
+}
+
+.dropdown-item{
+  cursor: pointer;
+}

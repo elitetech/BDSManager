@@ -15,7 +15,7 @@ public class IndexModel : PageModel
     [BindProperty]
     public List<ServerModel> Servers { get; set; } = new();
     [BindProperty]
-    public List<ItemModel> Items { get; set; } = new();
+    public List<IMinecraftCommand> Commands { get; set; } = new();
     [BindProperty]
     public List<ServerInstance> ServerInstances { get; set; } = new();
 
@@ -26,7 +26,7 @@ public class IndexModel : PageModel
         _optionsIO = optionsIO;
         Servers = _optionsIO.ManagerOptions.Servers;
         ServerInstances = _minecraftServerService.ServerInstances;
-        Items = _optionsIO.ManagerOptions.Items;
+        Commands = _optionsIO.ManagerOptions.Commands;
     }
 
     public IActionResult OnGet()
