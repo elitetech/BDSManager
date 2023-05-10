@@ -12,5 +12,5 @@ public class MinecraftEnchantmentModel
     public string? ID { get; set; }
     public string? Description { get; set; }
     public int MaxLevel { get; set; }
-    public List<string>? ItemTypes { get; set; }
+    public List<string> ItemTypes { get; set; } = new ();
 }

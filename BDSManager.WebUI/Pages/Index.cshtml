@@ -163,7 +163,7 @@
                                                     @baseCommand.Name    
                                                 </div>
                                                 <ul class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-@baseCommand.Name">
-                                                    @if (baseCommand.Usage.Contains("<target>"))
+                                                    @if (baseCommand.Usage != null && baseCommand.Usage.Contains("<target>"))
                                                     {
                                                         <div class="dropend">
                                                             <!-- get online users -->
@@ -198,9 +198,16 @@
                                                                                     <img class="item-image" src="/images/@item.Image" alt="@item.Name" />@item.Name
                                                                                 </li>
                                                                                 <ul class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-@baseCommand.Name-@player.XUID-@item.IDName">
-                                                                                    @foreach(var amount in giveCommand.Amounts)
+                                                                                    @if (giveCommand.Amounts == null || giveCommand.Amounts.Count == 0)
                                                                                     {
-                                                                                        <li class="dropdown-item" data-server-path="@server.Path" data-player-name="@player.Name" data-item-id-name="@item.IDName" data-item-amount="1" onclick="giveCommand(this)">@amount</li>
+                                                                                        <li class="dropdown-item disabled">No amounts found</li>
+                                                                                    }
+                                                                                    else
+                                                                                    {
+                                                                                        @foreach(var amount in giveCommand.Amounts)
+                                                                                        {
+                                                                                            <li class="dropdown-item" onclick="renderCommand('@server.Path', '@baseCommand.Name', ['@player.Name', '@item.IDName', '@amount'])">@amount</li>
+                                                                                        }
                                                                                     }
                                                                                 </ul>
                                                                             }
@@ -211,18 +218,18 @@
                                                                     {
                                                                         <li class="dropdown-item">
                                                                             <div class="input-group" style="min-width: 250px;">
-                                                                                <input type="text" class="form-control server-command-tp-player-x" placeholder="x" />
-                                                                                <input type="text" class="form-control server-command-tp-player-y" placeholder="y" />
-                                                                                <input type="text" class="form-control server-command-tp-player-z" placeholder="z" />
+                                                                                <input type="text" class="form-control server-command-tp-player-x tp-coordinate" placeholder="x" />
+                                                                                <input type="text" class="form-control server-command-tp-player-y tp-coordinate" placeholder="y" />
+                                                                                <input type="text" class="form-control server-command-tp-player-z tp-coordinate" placeholder="z" />
                                                                                 <button class="btn btn-outline-dark tp-btn" data-server-path="@server.Path" data-player-name="@player.Name" onclick="tpCommand(this)">go</button>
                                                                             </div>
                                                                         </li>
                                                                         @foreach (var destinationPlayer in server.Players)
                                                                         {
-                                                                            //if(destinationPlayer.Name == player.Name) continue;
+                                                                            if(destinationPlayer.Name == player.Name) continue;
                                                                             <li class="dropdown-item player-btn" 
                                                                                 data-server-path="@server.Path" 
-                                                                                onclick="tpCommand(this)"
+                                                                                onclick="renderCommand('@server.Path', '@baseCommand.Name', ['@player.Name', '@destinationPlayer.Name'])"
                                                                                 data-player-name="@player.Name"
                                                                                 data-destination-player-name="@destinationPlayer.Name"
                                                                                 disabled="@(!destinationPlayer.Online)">
@@ -234,13 +241,12 @@
                                                                     @if (baseCommand is BDSManager.WebUI.Models.MinecraftEnchantmentCommandModel enchantmentCommand)
                                                                     {
                                                                         var types = new List<string>();
-                                                                        var typeArrays = enchantmentCommand.Enchantments.Select(x => x.ItemTypes);
-                                                                        foreach(var typeArray in typeArrays)
+                                                                        foreach(var typeArray in enchantmentCommand.Enchantments.Select(x => x.ItemTypes))
                                                                         {
                                                                             types.AddRange(typeArray);
                                                                         }
                                                                         types.Sort();
-                                                                        <div class="dropdown enchantment-dropdown">
+                                                                        <div class="dropdown enchantments-dropdown">
                                                                             @foreach(var itemType in types.Distinct())
                                                                             {
                                                                                 <li class="dropdown-item dropdown-toggle" 
@@ -265,7 +271,7 @@
                                                                                         <ul class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-@baseCommand.Name-@player.XUID-@enchantment.Name">
                                                                                             @for(var level = 1; level <= enchantment.MaxLevel; level++)
                                                                                             {
-                                                                                                <li class="dropdown-item" data-server-path="@server.Path" data-player-name="@player.Name" data-enchantment-id="@enchantment.ID" data-enchantment-level="@level" onclick="enchantmentCommand(this)">@level</li>
+                                                                                                <li class="dropdown-item" onclick="renderCommand('@server.Path', '@baseCommand.Name', ['@enchantment.ID', '@level'])">@level</li>
                                                                                             }
                                                                                         </ul>
                                                                                     }
@@ -277,7 +283,7 @@
 
                                                                     @if (baseCommand is BDSManager.WebUI.Models.MinecraftEffectCommandModel effectCommand)
                                                                     {
-                                                                        <div class="dropdown effect-dropdown">
+                                                                        <div class="dropdown effects-dropdown">
                                                                             @foreach (var effect in effectCommand.Effects)
                                                                             {
                                                                                 <li class="dropdown-item dropdown-toggle" 
@@ -288,12 +294,14 @@
                                                                                     data-effect-name="@effect.Name">
                                                                                     @effect.Name
                                                                                 </li>
-                                                                                <ul class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-@baseCommand.Name-@player.XUID-@effect.Name">
+                                                                                <ul class="dropdown-menu dropdown-menu-sm dropdown-menu-dark effect-group" id="server-command-@baseCommand.Name-@player.XUID-@effect.Name">
                                                                                     <div class="input-group">
-                                                                                        <input type="text" class="form-control server-command-effect-player-duration" placeholder="duration" />
-                                                                                        <input type="text" class="form-control server-command-effect-player-amplifier" placeholder="amplifier" />
-                                                                                        <checkbox class="form-check-input server-command-effect-player-hide-particles" />
-                                                                                        <button class="btn btn-outline-dark effect-btn" data-server-path="@server.Path" data-player-name="@player.Name" data-effect-id="@effect.ID" onclick="effectCommand(this)">go</button>
+                                                                                        <div class="form-check form-switch form-check-inline">
+                                                                                            <input class="form-check-input server-command-effect-player-hide-particles" type="checkbox" checked id="server-command-@server.Path-@player.XUID-@effect.ID" data-bs-toggle="tooltip" data-bs-placement="left" title="show particles" >
+                                                                                        </div>
+                                                                                        <input type="text" class="form-control server-command-effect-player-duration effect-input" placeholder="duration" value="10" data-bs-toggle="tooltip" data-bs-placement="left" title="duration" />
+                                                                                        <input type="text" class="form-control server-command-effect-player-amplifier effect-input" placeholder="amplifier" value="1" data-bs-toggle="tooltip" data-bs-placement="left" title="amplifier" />
+                                                                                        <button class="btn btn-outline-dark effect-btn" data-server-path="@server.Path" data-player-name="@player.Name" data-effect-id="@effect.ID" onclick="renderCommand('@server.Path', '@baseCommand.Name', ['@player.Name', '@effect.ID', '10', '1', 'false'])">go</button>
                                                                                     </div>
                                                                                 </ul>
 
@@ -324,12 +332,12 @@
                                                                         <li class="dropdown-item">
                                                                             <div class="input-group" style="min-width: 250px;">
                                                                                 <input type="text" class="form-control server-command-time-set" placeholder="ticks" />
-                                                                                <button class="btn btn-outline-dark time-btn" data-server-path="@server.Path" onclick="timeSetCommand(this)">go</button>
+                                                                                <button class="btn btn-outline-dark time-btn" data-server-path="@server.Path" onclick="renderCommand('@server.Path', '@baseCommand.Name', ['@arg', '0'])">go</button>
                                                                             </div>
                                                                         </li>
                                                                         @foreach (var time in timeCommand.SetValues)
                                                                         {
-                                                                            <li class="dropdown-item" data-server-path="@server.Path" data-time="@time" onclick="timeSetCommand(this)">@time</li>
+                                                                            <li class="dropdown-item" data-server-path="@server.Path" data-time="@time" onclick="renderCommand('@server.Path', '@baseCommand.Name', ['@arg', '@time'])">@time</li>
                                                                         }
                                                                     }
 
@@ -338,7 +346,7 @@
                                                                         <li class="dropdown-item">
                                                                             <div class="input-group" style="min-width: 250px;">
                                                                                 <input type="text" class="form-control server-command-time-add" placeholder="ticks" />
-                                                                                <button class="btn btn-outline-dark time-btn" data-server-path="@server.Path" onclick="timeAddCommand(this)">go</button>
+                                                                                <button class="btn btn-outline-dark time-btn" data-server-path="@server.Path" onclick="renderCommand('@server.Path', '@baseCommand.Name', ['@arg', '0'])">go</button>
                                                                             </div>
                                                                         </li>
                                                                     }
@@ -347,7 +355,7 @@
                                                                     {
                                                                         foreach(var query in timeCommand.QueryValues)
                                                                         {
-                                                                            <button class="dropdown-item" data-server-path="@server.Path" data-query="@query" onclick="timeQueryCommand(this)">@query</button>
+                                                                            <button class="dropdown-item" data-server-path="@server.Path" data-query="@query" onclick="renderCommand('@server.Path', '@baseCommand.Name', ['@arg', '@query'])">@query</button>
                                                                         }
                                                                     }
                                                                 </div>
@@ -360,7 +368,7 @@
                                                         <div class="dropend">
                                                             @foreach (var arg in weatherCommand.Arguments)
                                                             {
-                                                                <div class="dropdown-item" data-server-path="@server.Path" data-weather="@arg" onclick="weatherSetCommand(this)">@arg</div>
+                                                                <div class="dropdown-item" data-server-path="@server.Path" data-weather="@arg" onclick="renderCommand('@server.Path', '@baseCommand.Name', ['@arg'])">@arg</div>
                                                             }
                                                         </div>
                                                     }

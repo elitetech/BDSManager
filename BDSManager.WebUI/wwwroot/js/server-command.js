@@ -3,29 +3,65 @@ $(document).ready(function () {
     $('.server-command-give-item-search').on('input', function(){
         filterItems(this);
     });
+
+    $(".tp-coordinate").on('input', function(){
+        let x = $(this).parent().find('input.server-command-tp-player-x').val().length == 0 
+            ? 0 
+            : $(this).parent().find('input.server-command-tp-player-x').val();
+        let y = $(this).parent().find('input.server-command-tp-player-y').val().length == 0
+            ? 0
+            : $(this).parent().find('input.server-command-tp-player-y').val();
+        let z = $(this).parent().find('input.server-command-tp-player-z').val().length == 0
+            ? 0
+            : $(this).parent().find('input.server-command-tp-player-z').val();
+
+        let tpBtn = $(this).parent().find('button.tp-btn');
+        let path = $(tpBtn).attr('data-server-path');
+        let player = $(tpBtn).attr('data-player-name');
+        $(tpBtn).attr('onclick', `renderCommand('${path}', 'tp', ['${player}', '${x}', '${y}', '${z}'])`);
+    });
+
+    $('.effect-input').on('input', function(){
+        updateEffectFunctionCall($(this));
+    });
+
+    $('.server-command-effect-player-hide-particles').on('click', function(){
+        updateEffectFunctionCall($(this).parent());
+    });
+
+    $('.server-command-time-set').on('input', function(){
+        let time = $(this).val().length == 0
+            ? 0
+            : $(this).val();
+        let timeBtn = $(this).parent().find('button.time-btn');
+        let path = $(timeBtn).attr('data-server-path');
+        $(timeBtn).attr('onclick', `renderCommand('${path}', 'time set', ['${time}'])`);
+    });
+
+    $('.server-command-time-add').on('input', function(){
+        let time = $(this).val().length == 0
+            ? 0
+            : $(this).val();
+        let timeBtn = $(this).parent().find('button.time-btn');
+        let path = $(timeBtn).attr('data-server-path');
+        $(timeBtn).attr('onclick', `renderCommand('${path}', 'time add', ['${time}'])`);
+    });
 });
 
-function giveCommand(button){
-    let path = $(button).attr('data-server-path');
-    //aria-labelledby="server-command-give-item"
-    let player = $(button).attr('data-player-name');
-    let item = $(button).attr('data-item-id-name');
-    let amount = $(button).attr('data-item-amount');
-    if (player == undefined && item == undefined){
-        alertToast('Error: Player and Item not defined!')
-        return;
-    }
-    if (player == undefined){
-        alertToast('Error: Player not defined!');
-        return;
-    }
-    if (item == undefined){
-        alertToast('Error: Item not defined!');
-        return;
-    }
-    $(`input#server-command-${path}`).val(`give ${player} ${item} ${amount}`);
-    $('body').click();
-    $(`input#server-command-${path}`).focus();
+function updateEffectFunctionCall(input){
+    let duration = $(input).parent().find('input.server-command-effect-player-duration').val().length == 0
+        ? 10
+        : $(input).parent().find('input.server-command-effect-player-duration').val();
+    let amplifier = $(input).parent().find('input.server-command-effect-player-amplifier').val().length == 0
+        ? 1
+        : $(input).parent().find('input.server-command-effect-player-amplifier').val();
+    let hideParticles = !$(input).parent().find('input.server-command-effect-player-hide-particles').prop('checked');
+
+    let effectBtn = $(input).parent().find('button.effect-btn');
+    let path = $(effectBtn).attr('data-server-path');
+    let player = $(effectBtn).attr('data-player-name');
+    let effect = $(effectBtn).attr('data-effect-id');
+    $(effectBtn).attr('onclick', `renderCommand('${path}', 'effect', ['${player}', '${effect}', '${duration}', '${amplifier}', '${hideParticles}'])`);
 }
 
 function filterItems(input){
@@ -43,132 +79,10 @@ function filterItems(input){
     });
 }
 
-function tpCommand(button){
-    let path = $(button).attr('data-server-path');
-    //aria-labelledby="server-command-give-item"
-    let target = $(button).attr('data-player-name');
-    let destination = undefined;
-    if ($(button).attr('class').includes('player-btn')) 
-        destination = $(button).attr('data-destination-player-name');
-    
-    if (destination == undefined){
-        let x = $(button).parent().find('input.server-command-tp-player-x').val();
-        let y = $(button).parent().find('input.server-command-tp-player-y').val();
-        let z = $(button).parent().find('input.server-command-tp-player-z').val();
-        destination = `${x} ${y} ${z}`;
-    }
-    if (target == undefined && destination == undefined){
-        alertToast('Error: Player and Target not defined!')
-        return;
-    }
-    if (target == undefined){
-        alertToast('Error: Player not defined!');
-        return;
-    }
-    if (destination == undefined){
-        alertToast('Error: Target not defined!');
-        return;
-    }
-    $(`input#server-command-${path}`).val(`tp ${target} ${destination}`);
+function renderCommand(path, command, args){
+    let commandInput = $(`input#server-command-${path}`);
+    let argsString = args.join(' ');
+    commandInput.val(`${command} ${argsString}`);
     $('body').click();
-    $(`input#server-command-${path}`).focus();
-}
-
-function timeSetCommand(button){
-    let path = $(button).attr('data-server-path');
-    let time = $(button).attr('data-time');
-
-    if (time == undefined){
-        time = $(button).parent().find('input.server-command-time-set').val();
-    }
-
-    if (time == undefined){
-        alertToast('Error: Ticks/time not defined!');
-        return;
-    }
-    $(`input#server-command-${path}`).val(`time set ${time}`);
-    $('body').click();
-    $(`input#server-command-${path}`).focus();
-}
-
-function timeAddCommand(button){
-    let path = $(button).attr('data-server-path');
-    let time = $(button).parent().find('input.server-command-time-add').val();
-    
-
-    if (time == undefined){
-        alertToast('Error: Ticks not defined!');
-        return;
-    }
-    $(`input#server-command-${path}`).val(`time add ${time}`);
-    $('body').click();
-    $(`input#server-command-${path}`).focus();
-}
-
-function timeQueryCommand(button){
-    let path = $(button).attr('data-server-path');
-    let time = $(button).attr('data-query');
-
-    if (time == undefined){
-        alertToast('Error: Query not defined!');
-        return;
-    }
-    $(`input#server-command-${path}`).val(`time query ${time}`);
-    $('body').click();
-    $(`input#server-command-${path}`).focus();
-}
-
-function weatherSetCommand(button){
-    let path = $(button).attr('data-server-path');
-    let weather = $(button).attr('data-weather');
-
-    if (weather == undefined){
-        alertToast('Error: Weather not defined!');
-        return;
-    }
-    $(`input#server-command-${path}`).val(`weather ${weather}`);
-    $('body').click();
-    $(`input#server-command-${path}`).focus();
-}
-
-function enchantmentCommand(button){
-    let path = $(button).attr('data-server-path');
-    let enchant = $(button).attr('data-enchantment-id');
-    let level = $(button).attr('data-enchantment-level');
-    let player = $(button).attr('data-player-name');
-
-    if (enchant == undefined){
-        alertToast('Error: Enchant not defined!');
-        return;
-    }
-    if (level == undefined){
-        alertToast('Error: Level not defined!');
-        return;
-    }
-    $(`input#server-command-${path}`).val(`enchant ${player} ${enchant} ${level}`);
-    $('body').click();
-    $(`input#server-command-${path}`).focus();
-}
-
-function effectCommand(button){
-    let path = $(button).attr('data-server-path');
-    let effect = $(button).attr('data-effect-id');
-    let duration = $(button).parent().find('input.server-command-effect-player-duration').val();
-    let amplifier = $(button).parent().find('input.server-command-effect-player-amplifier').val();
-    let showParticles = $(button).parent().find('input.server-command-effect-player-show-particles').is(':checked');
-    let player = $(button).attr('data-player-name');
-
-    if (effect == undefined){
-        alertToast('Error: Effect not defined!');
-        return;
-    }
-    if (duration == undefined){
-        duration = 30;
-    }
-    if (amplifier == undefined){
-        amplifier = 1;
-    }
-    $(`input#server-command-${path}`).val(`effect ${player} ${effect} ${duration} ${amplifier} ${showParticles}`);
-    $('body').click();
-    $(`input#server-command-${path}`).focus();
+    commandInput.focus();
 }

@@ -10,5 +10,5 @@ public class MinecraftEnchantmentCommandModel : IMinecraftCommand
     public string? Name { get; set; }
     public string? Description { get; set; }
     public String? Usage { get; set; }
-    public List<MinecraftEnchantmentModel>? Enchantments { get; set; }
+    public List<MinecraftEnchantmentModel> Enchantments { get; set; } = new ();
 }

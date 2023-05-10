@@ -10,6 +10,6 @@ public class MinecraftGiveCommandModel : IMinecraftCommand
     public string? Name { get; set; }
     public string? Description { get; set; }
     public String? Usage { get; set; }
-    public List<MinecraftItemModel>? Items { get; set; }
+    public List<MinecraftItemModel> Items { get; set; } = new ();
     public List<int>? Amounts { get; set; }
 }
