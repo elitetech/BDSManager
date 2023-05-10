@@ -226,13 +226,13 @@
                                                                         </li>
                                                                         @foreach (var destinationPlayer in server.Players)
                                                                         {
+                                                                            var distinationDisabled = destinationPlayer.Online ? "" : "disabled";
                                                                             if(destinationPlayer.Name == player.Name) continue;
-                                                                            <li class="dropdown-item player-btn" 
+                                                                            <li class="dropdown-item player-btn @distinationDisabled" 
                                                                                 data-server-path="@server.Path" 
                                                                                 onclick="renderCommand('@server.Path', '@baseCommand.Name', ['@player.Name', '@destinationPlayer.Name'])"
                                                                                 data-player-name="@player.Name"
-                                                                                data-destination-player-name="@destinationPlayer.Name"
-                                                                                disabled="@(!destinationPlayer.Online)">
+                                                                                data-destination-player-name="@destinationPlayer.Name">
                                                                                 @destinationPlayer.Name
                                                                             </li>
                                                                         }
