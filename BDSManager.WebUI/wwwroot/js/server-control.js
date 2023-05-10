@@ -60,7 +60,7 @@ $(document).ready(function () {
     
     $(document).on('keypress', 'input[id^="server-command-"]', function (e) {
         if (e.key == "Enter" || e.keyCode == 13) {
-            $(this).closest('.input-group').find('button').click();
+            $(this).parent().find('.server-command-send').click();
             return false;
         }
     });
@@ -75,7 +75,7 @@ $(document).ready(function () {
                 let index = commandCache.indexOf(command);
                 if(index === -1) 
                     index = commandCache.length;
-                if (e.key = "ArrowUp" || e.keyCode == 38) {
+                if (e.key == "ArrowUp" || e.keyCode == 38) {
                     // up arrow
                     if (index > 0) {
                         index--;
