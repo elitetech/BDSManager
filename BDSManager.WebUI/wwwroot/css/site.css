@@ -85,3 +85,7 @@ body {
 .form-switch .form-check-input{
   width: 3em;
 }
+
+.dropdown-item{
+  cursor: pointer;
+}

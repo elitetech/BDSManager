@@ -86,3 +86,8 @@ function renderCommand(path, command, args){
     $('body').click();
     commandInput.focus();
 }
+
+function clearCommand(path){
+    let commandInput = $(`input#server-command-${path}`);
+    commandInput.val('').focus();
+}

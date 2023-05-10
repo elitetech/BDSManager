@@ -170,15 +170,15 @@
                                                             @if(!server.Players.Any(x => x.Online)){
                                                                 <li class="dropdown-item disabled">No players online</li>
                                                             }
-                                                            @foreach (var player in server.Players)
+                                                            @foreach (var player in server.Players.OrderByDescending(x => x.Online))
                                                             {
-                                                                <li class="dropdown-item dropdown-toggle" 
+                                                                var disabled = player.Online ? "" : "disabled";
+                                                                <li class="dropdown-item dropdown-toggle @disabled" 
                                                                     aria-labelledby="server-command-@baseCommand.Name-@player.XUID"
                                                                     data-bs-toggle="dropdown"
                                                                     aria-expanded="false"
                                                                     data-bs-auto-close="outside"
-                                                                    data-player-name="@player.Name"
-                                                                    disabled="@(!player.Online)">
+                                                                    data-player-name="@player.Name">
                                                                     @player.Name
                                                                 </li>
                                                                 <ul class="dropdown-menu dropdown-menu-sm dropdown-menu-dark" id="server-command-@baseCommand.Name-@player.XUID">
@@ -378,7 +378,8 @@
                                     </div>
                                 </div>
                                 <input type="text" class="form-control" data-server-path="@server.Path" id="server-command-@server.Path" />
-                                <button class="btn btn-secondary" data-server-path="@server.Path" onclick="sendCommandToHub(@server.Path)" disabled="@(!online)">Send</button>
+                                <button class="btn btn-secondary" data-server-path="@server.Path" onclick="clearCommand('@server.Path')" disabled="@(!online)">Clear</button>
+                                <button class="btn btn-secondary" data-server-path="@server.Path" onclick="sendCommandToHub('@server.Path')" disabled="@(!online)">Send</button>
                             </div>
                         </div>
                     </div>
