@@ -27,7 +27,7 @@ public class OptionsIO
     private void GetCommands()
     {
         // get commands from commands.json
-        var commandsPath = Path.Combine("wwwroot", "commands.json");
+        var commandsPath = "commands.json";
         if (!File.Exists(commandsPath))
             throw new Exception("commands.json not found");
 
