@@ -67,8 +67,7 @@ function updateEffectFunctionCall(input){
 function filterItems(input){
     let filter = $(input).val();
     let items = $('li.give-item');
-    console.log(filter);
-    console.log(items);
+    
     items.each(function(i, item){
         let itemName = $(item).attr('data-item-id-name');
         if(itemName.includes(filter)){
