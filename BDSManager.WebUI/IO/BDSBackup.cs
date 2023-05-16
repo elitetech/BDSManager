@@ -65,10 +65,7 @@ public class BDSBackup
                 || fileName == "known_valid_packs.json"
                 || fileName == "world_behavior_packs.json"
                 || fileName == "world_resource_packs.json"
-                || fileName == "players.json"
-                || fileName == "backup.json"
-                || fileName == "update.json"
-                || fileName == "autostart.json")
+                || fileName == "server.json")
                 backupFile = true;
 
             if(!backupFile)
@@ -96,7 +93,7 @@ public class BDSBackup
             _directoryIO.Copy(directory, Path.Combine(backupDirectory, dirName), true);
         }
         server.Backup.LastBackup = DateTime.Now;
-        _serverProperties.SaveBackupSettings(server);
+        _serverProperties.SaveServerSettings(server);
         _optionsIO.RefreshServers();
         return Task.CompletedTask;
     }

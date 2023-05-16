@@ -106,17 +106,11 @@ public class ManageServerModel : PageModel
 
         Server.Permissions.RemoveAll(x => string.IsNullOrEmpty(x.xuid));
 
-        _serverProperties.SaveServerProperties(Server);
-        _serverProperties.SavePermissions(Server);
-        _serverProperties.SaveAllowList(Server);
-        _serverProperties.SaveBackupSettings(Server);
-        _serverProperties.SaveUpdateSettings(Server);
-        _serverProperties.SaveAutoStart(Server);
+        _serverProperties.SaveServerSettings(Server);
 
         _optionsIO.RefreshServers();
 
         await _bdsUpdater.UpdateBedrockServerAsync(Server);
-        _optionsIO.AddServer(Server);
         return RedirectToPage("./Index");
     }
 
@@ -135,12 +129,6 @@ public class ManageServerModel : PageModel
 
         Server.Permissions.RemoveAll(x => string.IsNullOrEmpty(x.xuid));
 
-        _serverProperties.SaveServerProperties(Server);
-        _serverProperties.SavePermissions(Server);
-        _serverProperties.SaveAllowList(Server);
-        _serverProperties.SaveBackupSettings(Server);
-        _serverProperties.SaveUpdateSettings(Server);
-        _serverProperties.SaveAutoStart(Server);
 
         var availableAddons = _bdsAddon.GetAvailableAddons();
         foreach (var uuid in ApplyAddons)
@@ -159,7 +147,19 @@ public class ManageServerModel : PageModel
                 continue;
             _bdsAddon.UninstallAddon(addon, Server);
         }
+        var server = _optionsIO.ManagerOptions.Servers.FirstOrDefault(x => x.Path == Server.Path);
+        if(server == null)
+            return Task.FromResult<IActionResult>(RedirectToPage("./Index"));
+        server.Addons = Server.Addons;
+        server.AllowList = Server.AllowList;
+        server.Options = Server.Options;
+        server.Permissions = Server.Permissions;
+        server.AutoStartEnabled = Server.AutoStartEnabled;
+        server.Backup = Server.Backup;
+        server.Worlds = Server.Worlds;
+        
 
+        _serverProperties.SaveServerSettings(server);
         _optionsIO.RefreshServers();
         return Task.FromResult<IActionResult>(RedirectToPage("./Index"));
     }
@@ -210,11 +210,8 @@ public class ManageServerModel : PageModel
         
         
         server.Options.LevelName = levelName;
-        _serverProperties.SaveServerProperties(server);
-        _serverProperties.SaveAllowList(server);
-        _serverProperties.SavePermissions(server);
-        _serverProperties.SaveBackupSettings(server);
-        _serverProperties.SaveUpdateSettings(server);
+        
+        _serverProperties.SaveServerSettings(Server);
         _optionsIO.RefreshServers();
         
         foreach(var file in Directory.GetFiles(Path.Combine(_downloadPath, "temp")))
@@ -271,7 +268,6 @@ public class ManageServerModel : PageModel
         if(Directory.Exists(worldPath))
             Directory.Delete(worldPath, true);
 
-        server.Worlds = _serverProperties.ListWorlds(server);
         _optionsIO.RefreshServers();
 
         return Task.FromResult<IActionResult>(RedirectToPage("./ManageServer", routeOptions));

@@ -126,10 +126,7 @@ public class BDSAddon
 
         server.Addons.Add(pack);
 
-        if(isResourcePack)
-            _serverProperties.SaveResourcePacks(server);
-        else
-            _serverProperties.SaveBehaviorPacks(server);
+        _serverProperties.SaveServerSettings(server);
     }
 
     public void UninstallAddon(AddonPackModel pack, ServerModel server)
@@ -156,9 +153,6 @@ public class BDSAddon
         if(server.Addons.FirstOrDefault(x => x.Manifest.header.uuid == pack.Manifest.header.uuid) is AddonPackModel addon)
             server.Addons.Remove(addon);
 
-        if(isResourcePack)
-            _serverProperties.SaveResourcePacks(server);
-        else
-            _serverProperties.SaveBehaviorPacks(server);
+        _serverProperties.SaveServerSettings(server);
     }
 }

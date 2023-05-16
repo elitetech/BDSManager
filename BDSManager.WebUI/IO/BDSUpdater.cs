@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Text.RegularExpressions;
 using AngleSharp;
 using AngleSharp.Html.Parser;
+using BDSManager.WebUI.Hubs;
 using BDSManager.WebUI.Models;
 using BDSManager.WebUI.Services;
 
@@ -12,29 +13,28 @@ public class BDSUpdater
     private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
     private readonly ServerProperties _serverProperties;
     private readonly MinecraftServerService _minecraftServerService;
+    private readonly ConsoleHub _consoleHub;
     private readonly string _url = "https://www.minecraft.net/en-us/download/server/bedrock/";
     private readonly string? _downloadPath;
     private readonly string? _serversPath;
 
-    public BDSUpdater(Microsoft.Extensions.Configuration.IConfiguration configuration, ServerProperties serverProperties, MinecraftServerService minecraftServerService)
+    public BDSUpdater(Microsoft.Extensions.Configuration.IConfiguration configuration, ServerProperties serverProperties, MinecraftServerService minecraftServerService, ConsoleHub consoleHub)
     {
         _configuration = configuration;
         _serverProperties = serverProperties;
         _minecraftServerService = minecraftServerService;
+        _consoleHub = consoleHub;
         _downloadPath = _configuration["DownloadPath"];
         _serversPath = _configuration["ServersPath"];
     }
 
     public async Task UpdateBedrockServerAsync(ServerModel server)
     {
-        if(string.IsNullOrEmpty(_downloadPath))
-            throw new Exception("Download path not set in configuration");
-        
-        if(string.IsNullOrEmpty(_serversPath))
-            throw new Exception("Servers path not set in configuration");
-
-        if(string.IsNullOrEmpty(server.Path))
-            throw new Exception("Server path is not set");
+        if(string.IsNullOrEmpty(_downloadPath) || string.IsNullOrEmpty(_serversPath) || string.IsNullOrEmpty(server.Path))
+        {
+            _consoleHub.UpdateConsoleOutput(server.Path, "CONTROL:update-failed");
+            return;
+        }
 
         if(!Directory.Exists(_serversPath))
             Directory.CreateDirectory(_serversPath);
@@ -46,32 +46,36 @@ public class BDSUpdater
         if(!Directory.Exists(destinationPath))
             Directory.CreateDirectory(destinationPath);
 
+        var instance = _minecraftServerService.ServerInstances.FirstOrDefault(x => x.Path == server.Path);
         if(await IsInstalledBedrockServerCurrentAsync(server))
+        {
+            _consoleHub.UpdateConsoleOutput(server.Path, "CONTROL:update-not-available");
             return;
-            
+        }
+        _consoleHub.UpdateConsoleOutput(server.Path, "CONTROL:update-available");
 
         var filePath = await IsDownloadedBedrockServerCurrentAsync() ? await GetDownloadedBedrockServerPathAsync() : await DownloadBedrockServerAsync();
         if(string.IsNullOrEmpty(filePath))
-            throw new Exception("Could not download bedrock server");
-        
-        var instance = _minecraftServerService.ServerInstances.FirstOrDefault(x => x.Path == server.Path);
+        {
+            _consoleHub.UpdateConsoleOutput(server.Path, "CONTROL:update-failed");
+            return;
+        }
+        var wasRunning = false;
         if(instance?.ServerProcess != null && !instance.ServerProcess.HasExited)
+        {
+            wasRunning = true;
             await _minecraftServerService.StopServerInstance(instance, "UPDATE");
+        }
         ZipFile.ExtractToDirectory(filePath, destinationPath, true);
 
-        _serverProperties.SaveServerProperties(server);
-        _serverProperties.SavePermissions(server);
-        _serverProperties.SaveAllowList(server);
-        _serverProperties.SavePlayers(server);
-        _serverProperties.SaveResourcePacks(server);
-        _serverProperties.SaveBehaviorPacks(server);
-        _serverProperties.SaveBackupSettings(server);
-        _serverProperties.SaveUpdateSettings(server);
-
-
         var version = ParseVersionFromFileName(filePath);
-        File.WriteAllText(Path.Combine(destinationPath, "version.txt"), version);
         server.Version = version;
+        _serverProperties.SaveServerSettings(server);
+        _consoleHub.UpdateConsoleOutput(server.Path, "CONTROL:update-complete");
+        if(wasRunning)
+        {
+            await _minecraftServerService.StartServerInstance(server);
+        }
     }
 
     private async Task<string?> DownloadBedrockServerAsync()
@@ -135,7 +139,7 @@ public class BDSUpdater
 
         var destinationPath = Path.Combine(_serversPath, server.Path);
 
-        string? currentVersion = GetInstalledVersion(destinationPath);
+        string? currentVersion = server.Version;
         if (currentVersion == null)
             return false;
 

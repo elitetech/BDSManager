@@ -218,6 +218,7 @@ function setupServerContextMenu(path, online){
     let restoreServerLink = $('#context-server-restore');
     let configureServerLink = $('#context-server-configure');
     let removeServerLink = $('#context-server-remove');
+    let updateServerLink = $('#context-server-update');
 
     startServerLink.prop("disabled", online);
     stopServerLink.prop("disabled", !online);
@@ -250,6 +251,10 @@ function setupServerContextMenu(path, online){
     removeServerLink.off("click").click(function(e){
         e.preventDefault();
         removeServer(path);
+    });
+    updateServerLink.off("click").click(function(e){
+        e.preventDefault();
+        checkForUpdates(path);
     });
 }
 
@@ -310,6 +315,7 @@ function restartServer(path){
 }
 
 function checkForUpdates(path){
+    alertToast("Checking for updates...");
     sendCommand(path, "update");
 }
 
@@ -331,6 +337,9 @@ function appendConsoleOutput(path, output){
         output = output.replace(timestamp, "").trim();
     }
     let consoleOutput = $(`#console-window-${path}`);
+    if(consoleOutput.length === 0)
+        return;
+
     let logElement = $(`
         <li class="console-line list-group-item" data-bs-toggle="tooltip" data-bs-placement="top" title="${timestamp}">
             <span class="console-line-content">${output}</span>
@@ -368,19 +377,37 @@ function processControlOutput(path, output){
         case "player-list-update":
             updatePlayerList(path,data);
             break;
+        case "update-available":
+            alertToast("Performing update...");
+            break;
+        case "update-not-available":
+            alertToast("No update available.");
+            break;
+        case "update-failed":
+            alertToast("Update failed.");
+            break;
+        case "update-complete":
+            alertToast("Update complete.");
+            break;
     }
 }
 
 function setOnlineStatus(path, online){
+    if($(`#server-status-${path}`) === undefined || $(`#server-details-${path}`) === undefined)
+        return;
     $(`#server-status-${path}`).text(online ? "Online" : "Offline").attr("data-server-uptime", online ? new Date() : 0);
     $(`#server-details-${path}`).find('#server-command-menu-btn').prop('disabled', !online);
 }
 
 function updatePlayerCount(path, playerCount){
+    if($(`#server-player-count-${path}`) === undefined)
+        return;
     $(`#server-player-count-${path}`).text(playerCount);
 }
 
 function updatePlayerList(path, playerJson){
+    if($(`#server-player-list-${path}`) === undefined)
+        return;
     let players = JSON.parse(playerJson);
     let playerList = $(`#server-player-list-${path}`);
     if(playerList.length > 0)
