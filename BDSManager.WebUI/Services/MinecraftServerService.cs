@@ -114,7 +114,7 @@ public class MinecraftServerService
         {
             _consoleHub.UpdateConsoleOutput(instance.Path, "CONTROL:start-success");
             server.LastStarted = DateTime.Now;
-            _serverProperties.SaveLastStarted(server);
+            _serverProperties.SaveServerSettings(server);
             _optionsIO.RefreshServers();
         }
 
@@ -382,6 +382,6 @@ public class MinecraftServerService
         }
         _consoleHub.UpdateConsoleOutput(instance.Path, $"CONTROL:player-count-update|{server.Players.Where(x => x.Online).Count()}/{server.Options.MaxPlayers}");
         _consoleHub.UpdateConsoleOutput(instance.Path, $"CONTROL:player-list-update|{JsonConvert.SerializeObject(server.Players)}");
-        _serverProperties.SavePlayers(server);
+        _serverProperties.SaveServerSettings(server);
     }
 }

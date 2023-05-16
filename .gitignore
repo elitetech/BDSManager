@@ -22,3 +22,5 @@ packages/
 
 # Ignore all files with the .log extension
 *.log
+
+.fake

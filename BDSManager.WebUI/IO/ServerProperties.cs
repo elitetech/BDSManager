@@ -19,17 +19,7 @@ public class ServerProperties
         var server = new ServerModel();
         server.Path = path;
         server.Icon = "https://minecraft.net/favicon.ico";
-        server.Version = GetVersion(server);
-        server.Options = ParseServerProperties(server);
-        server.AllowList = ParseAllowList(server);
-        server.Permissions = ParsePermissions(server);
-        server.Players = ParsePlayers(server);
-        server.Addons = ParseAddons(server);
-        server.Backup = ParseBackupSettings(server);
-        server.Update = ParseUpdateSettings(server);
-        server.AutoStartEnabled = ParseAutoStart(server);
-        server.LastStarted = ParseLastStarted(server);
-        server.Worlds = ListWorlds(server);
+        server = ParseServerSettings(server);
         return server;
     }
 
@@ -75,119 +65,37 @@ public class ServerProperties
         return servers;
     }
 
-    private string GetVersion(ServerModel server)
+    private ServerModel ParseServerSettings(ServerModel server)
     {
-        var versionPath = Path.Combine(_serversPath, server.Path, "version.txt");
-        var version = File.Exists(versionPath) ? File.ReadAllText(versionPath) : "";
-        return version;
+        var serverSettingsPath = Path.Combine(_serversPath, server.Path, "server.json");
+        if(!File.Exists(serverSettingsPath))
+            return server;
+
+        var serverSettingsJson = File.ReadAllText(serverSettingsPath);
+        var serverSettings = JsonConvert.DeserializeObject<ServerModel>(serverSettingsJson);
+        if(serverSettings is null)
+            return server;
+
+        server = serverSettings;
+        server.Addons = ParseAddons(server);
+        server.Worlds = ListWorlds(server);
+        return server;
     }
 
-    private ServerOptionsModel ParseServerProperties(ServerModel server)
+    public void SaveServerSettings(ServerModel server)
     {
-        var serverPropertiesPath = Path.Combine(_serversPath, server.Path,"server.properties");
-        var options = new ServerOptionsModel();
-        if(!File.Exists(serverPropertiesPath))
-            return options;
-            
-        File.ReadAllLines(serverPropertiesPath).ToList().ForEach(line =>
-        {
-            var split = line.Split('=');
-            if (split.Length != 2)
-                return;
-            var key = split[0];
-            var value = split[1];
-            switch (key)
-            {
-                case "server-name":
-                    options.Name = value;
-                    break;
-                case "server-port":
-                    options.Port = value;
-                    break;
-                case "server-portv6":
-                    options.Portv6 = value;
-                    break;
-                case "max-players":
-                    options.MaxPlayers = value;
-                    break;
-                case "gamemode":
-                    options.Gamemode = value;
-                    break;
-                case "difficulty":                  
-                    options.Difficulty = value;
-                    break;
-                case "allow-cheats":
-                    options.AllowCheats = value;
-                    break;
-                case "online-mode":
-                    options.OnlineMode = value;
-                    break;
-                case "white-list":
-                    options.AllowList = value;
-                    break;
-                case "max-threads":
-                    options.MaxThreads = value;
-                    break;
-                case "view-distance":
-                    options.ViewDistance = value;
-                    break;
-                case "tick-distance":
-                    options.TickDistance = value;
-                    break;
-                case "player-idle-timeout":
-                    options.PlayerIdleTimeout = value;
-                    break;
-                case "level-name":
-                    options.LevelName = value;
-                    break;
-                case "level-seed":
-                    options.LevelSeed = value;
-                    break;
-                case "compression-threshold":
-                    options.CompressionThreshold = value;
-                    break;
-                case "default-player-permission-level":
-                    options.DefaultPlayerPermissionLevel = value;
-                    break;
-                case "texturepack-required":
-                    options.TexturePackRequired = value;
-                    break;
-                case "content-log-file-enabled":
-                    options.ContentLog = value;
-                    break;
-                case "force-gamemode":
-                    options.ForceGamemode = value;
-                    break;
-                case "server-authoritative-movement":
-                    options.ServerAuthoritativeMovement = value;
-                    break;
-                case "player-movement-score-threshold":
-                    options.PlayerMovementScoreThreshold = value;
-                    break;
-                case "player-movement-distance-threshold":
-                    options.PlayerMovementDistanceThreshold = value;
-                    break;
-                case "player-movement-duration-threshold-in-ms":
-                    options.PlayerMovementDurationThresholdInMs = value;
-                    break;
-                case "player-movement-action-direction-threshold":
-                    options.PlayerMovementActionDirectionThreshold = value;
-                    break;
-                case "correct-player-movement":
-                    options.CorrectPlayerMovement = value;
-                    break;
-                case "server-authoritative-block-breaking":
-                    options.ServerAuthoritativeBlockBreaking = value;
-                    break;
-                case "emit-server-telemetry":
-                    options.EmitServerTelemetry = value;
-                    break;
-            }
-        });
-        return options;
+        var serverSettingsPath = Path.Combine(_serversPath, server.Path, "server.json");
+        var serverSettingsJson = JsonConvert.SerializeObject(server, Formatting.Indented);
+        File.WriteAllText(serverSettingsPath, serverSettingsJson);
+
+        SaveServerProperties(server);
+        SaveAllowList(server);
+        SavePermissions(server);
+        SaveResourcePacks(server);
+        SaveBehaviorPacks(server);
     }
 
-    public void SaveServerProperties(ServerModel server)
+    private void SaveServerProperties(ServerModel server)
     {
         var path = Path.Combine(_serversPath, server.Path, "server.properties");
         var lines = new List<string>();
@@ -222,116 +130,18 @@ public class ServerProperties
         File.WriteAllLines(path, lines);
     }
 
-    private List<PermissionModel> ParsePermissions(ServerModel server)
-    {
-        var permissionsPath = Path.Combine(_serversPath, server.Path, "permissions.json");
-
-        return File.Exists(permissionsPath) ? JsonConvert.DeserializeObject<List<PermissionModel>>(File.ReadAllText(permissionsPath)) : new List<PermissionModel>();
-    }
-
-    public void SavePermissions(ServerModel server)
+    private void SavePermissions(ServerModel server)
     {
         var path = Path.Combine(_serversPath, server.Path, "permissions.json");
         var serializedPermissions = JsonConvert.SerializeObject(server.Permissions);
         File.WriteAllText(path, serializedPermissions);
     }
 
-    private List<AllowPlayerModel> ParseAllowList(ServerModel server)
-    {
-        var allowListPath = Path.Combine(_serversPath, server.Path, "allowlist.json");
-
-        return File.Exists(allowListPath) ? JsonConvert.DeserializeObject<List<AllowPlayerModel>>(File.ReadAllText(allowListPath)) : new List<AllowPlayerModel>();
-    }
-
-    public void SaveAllowList(ServerModel server)
+    private void SaveAllowList(ServerModel server)
     {
         var path = Path.Combine(_serversPath, server.Path, "allowlist.json");
         var serializedAllowList = JsonConvert.SerializeObject(server.AllowList);
         File.WriteAllText(path, serializedAllowList);
-    }
-
-    private List<PlayerModel> ParsePlayers(ServerModel server)
-    {
-        var playersPath = Path.Combine(_serversPath, server.Path, "players.json");
-
-        return File.Exists(playersPath) ? JsonConvert.DeserializeObject<List<PlayerModel>>(File.ReadAllText(playersPath)) : new List<PlayerModel>();
-    }
-
-    public void SavePlayers(ServerModel server)
-    {
-        var path = Path.Combine(_serversPath, server.Path, "players.json");
-        var serializedPlayers = JsonConvert.SerializeObject(server.Players);
-        File.WriteAllText(path, serializedPlayers);
-    }
-
-    public void SaveBackupSettings(ServerModel server)
-    {
-        var path = Path.Combine(_serversPath, server.Path, "backup.json");
-        var serializedBackupSettings = JsonConvert.SerializeObject(server.Backup);
-        File.WriteAllText(path, serializedBackupSettings);
-    }
-
-    private BackupModel ParseBackupSettings(ServerModel server)
-    {
-        var backupPath = Path.Combine(_serversPath, server.Path, "backup.json");
-
-        return File.Exists(backupPath) ? JsonConvert.DeserializeObject<BackupModel>(File.ReadAllText(backupPath)) : new BackupModel();
-    }
-
-    public void SaveUpdateSettings(ServerModel server)
-    {
-        var path = Path.Combine(_serversPath, server.Path, "update.json");
-        var serializedUpdateSettings = JsonConvert.SerializeObject(server.Update);
-        File.WriteAllText(path, serializedUpdateSettings);
-    }
-
-    private UpdateModel ParseUpdateSettings(ServerModel server)
-    {
-        var updatePath = Path.Combine(_serversPath, server.Path, "update.json");
-
-        return File.Exists(updatePath) ? JsonConvert.DeserializeObject<UpdateModel>(File.ReadAllText(updatePath)) : new UpdateModel();
-    }
-
-    private bool ParseAutoStart(ServerModel server)
-    {
-        var autoStartPath = Path.Combine(_serversPath, server.Path, "autostart.json");
-        if(!File.Exists(autoStartPath))
-            return false;
-
-        var autoStartJson = File.ReadAllText(autoStartPath);
-        if(string.IsNullOrEmpty(autoStartJson))
-            return false;
-
-        var autoStart = JsonConvert.DeserializeObject<bool>(autoStartJson);
-        return autoStart;
-    }
-
-    internal void SaveAutoStart(ServerModel server)
-    {
-        var autoStartPath = Path.Combine(_serversPath, server.Path, "autostart.json");
-        var autoStartJson = JsonConvert.SerializeObject(server.AutoStartEnabled);
-        File.WriteAllText(autoStartPath, autoStartJson);
-    }
-
-    private DateTime? ParseLastStarted(ServerModel server)
-    {
-        var lastStartedPath = Path.Combine(_serversPath, server.Path, "laststarted.json");
-        if(!File.Exists(lastStartedPath))
-            return null;
-
-        var lastStartedJson = File.ReadAllText(lastStartedPath);
-        if(string.IsNullOrEmpty(lastStartedJson))
-            return null;
-
-        var lastStarted = JsonConvert.DeserializeObject<DateTime>(lastStartedJson);
-        return lastStarted;
-    }
-
-    internal void SaveLastStarted(ServerModel server)
-    {
-        var lastStartedPath = Path.Combine(_serversPath, server.Path, "laststarted.json");
-        var lastStartedJson = JsonConvert.SerializeObject(server.LastStarted);
-        File.WriteAllText(lastStartedPath, lastStartedJson);
     }
 
     private List<WorldPackModel> ParseWorldResourcePacks(ServerModel server)
@@ -341,7 +151,7 @@ public class ServerProperties
         return File.Exists(worldResourcePacksPath) ? JsonConvert.DeserializeObject<List<WorldPackModel>>(File.ReadAllText(worldResourcePacksPath)) : new List<WorldPackModel>();
     }
 
-    public void SaveResourcePacks(ServerModel server)
+    private void SaveResourcePacks(ServerModel server)
     {
         var path = Path.Combine(_serversPath, server.Path, "worlds", server.Options.LevelName, "world_resource_packs.json");
         var addons = server.Addons
@@ -363,7 +173,7 @@ public class ServerProperties
         return File.Exists(behaviorResourcePacksPath) ? JsonConvert.DeserializeObject<List<WorldPackModel>>(File.ReadAllText(behaviorResourcePacksPath)) : new List<WorldPackModel>();
     }
 
-    public void SaveBehaviorPacks(ServerModel server)
+    private void SaveBehaviorPacks(ServerModel server)
     {
         var path = Path.Combine(_serversPath, server.Path, "worlds", server.Options.LevelName, "world_behavior_packs.json");
         var addons = server.Addons

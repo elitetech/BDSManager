@@ -83,7 +83,7 @@ public class BackupAndUpdateService : IHostedService, IDisposable
 
             await _minecraftServerService.BackupServer(server);
             server.Backup.NextBackup = DateTime.Now.AddHours(server.Backup.BackupInterval);
-            _serverProperties.SaveBackupSettings(server);
+            _serverProperties.SaveServerSettings(server);
             didBackup = true;
         }
         if (didBackup) 
@@ -105,7 +105,7 @@ public class BackupAndUpdateService : IHostedService, IDisposable
                 continue;
             await _bdsUpdater.UpdateBedrockServerAsync(server);
             server.Update.NextUpdate = DateTime.Now.AddHours(server.Update.UpdateInterval);
-            _serverProperties.SaveUpdateSettings(server);
+            _serverProperties.SaveServerSettings(server);
             didUpdate = true;
         }
         if (didUpdate) 
