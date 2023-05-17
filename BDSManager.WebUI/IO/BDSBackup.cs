@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using BDSManager.WebUI.Hubs;
 using BDSManager.WebUI.Models;
+using BDSManager.WebUI.Services;
 
 namespace BDSManager.WebUI.IO;
 
@@ -14,6 +15,7 @@ public class BDSBackup
     private readonly ConsoleHub _consoleHub;
     private readonly string? _serversPath;
     private readonly string? _backupsPath;
+    private const int MAX_QUERY_TRIES = 10;
 
     public BDSBackup(ILogger<BDSBackup> logger, IConfiguration configuration, DirectoryIO directoryIO, ServerProperties serverProperties, OptionsIO optionsIO, ConsoleHub consoleHub)
     {
@@ -93,9 +95,64 @@ public class BDSBackup
             _directoryIO.Copy(directory, Path.Combine(backupDirectory, dirName), true);
         }
         server.Backup.LastBackup = DateTime.Now;
+        server.Backup.NextBackup = DateTime.Now.AddHours(server.Backup.BackupInterval);
         _serverProperties.SaveServerSettings(server);
         _optionsIO.RefreshServers();
         return Task.CompletedTask;
+    }
+
+    public async Task WorldBackup(string serverPath, string fileList)
+    {
+        if(string.IsNullOrEmpty(_backupsPath))
+            throw new Exception("BackupsPath is not set in appsettings.json");
+        if(string.IsNullOrEmpty(_serversPath))
+            throw new Exception("ServersPath is not set in appsettings.json");
+
+        var backupPath = Path.Combine(_backupsPath, serverPath);
+        if (!Directory.Exists(backupPath))
+            Directory.CreateDirectory(backupPath);
+
+        var server = _optionsIO.ManagerOptions.Servers.FirstOrDefault(x => x.Path == serverPath);
+        if(server == null)
+            return;
+
+        var backupName = $"WORLD_BACKUP_{DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss")}";
+        var backupWorldDirectory = Path.Combine(backupPath, backupName);
+        Directory.CreateDirectory(backupWorldDirectory);
+        var directory = Path.Combine(_serversPath, serverPath, "worlds");
+
+        var filesToBackup = fileList.Split(',');
+        foreach(var file in filesToBackup)
+        {
+            var parts = file.Split(':');
+            var fileName = parts[0].Trim();
+            var trimSize = parts[1];
+            if(string.IsNullOrEmpty(fileName) || string.IsNullOrEmpty(trimSize))
+                continue;
+            var destinationFile = Path.Combine(backupWorldDirectory, fileName);
+            // get directory path of destination file and create if it doesn't exist
+            var destinationDirectory = Path.GetDirectoryName(destinationFile);
+            if(!Directory.Exists(destinationDirectory))
+                Directory.CreateDirectory(destinationDirectory);
+            File.Copy(Path.Combine(directory, fileName), destinationFile);
+
+            // trim file size in bytes to trimSize
+            var trimSizeBytes = int.Parse(trimSize);
+            var fileInfo = new FileInfo(Path.Combine(backupWorldDirectory, fileName));
+            if(fileInfo.Length > trimSizeBytes)
+            {
+                var fileBytes = File.ReadAllBytes(Path.Combine(backupWorldDirectory, fileName));
+                var neededBytes = fileBytes.SkipLast(fileBytes.Length - trimSizeBytes).ToArray();
+                File.WriteAllBytes(Path.Combine(backupWorldDirectory, fileName), neededBytes);
+            }
+        }
+
+        
+        server.Backup.LastWorldBackup = DateTime.Now;
+        server.Backup.NextWorldBackup = DateTime.Now.AddHours(server.Backup.WorldBackupInterval);
+        _serverProperties.SaveServerSettings(server);
+        _optionsIO.RefreshServers();
+        await ArchiveBackup(server);
     }
 
     private void CreateZipFromDirectory(string sourceDirectory, string destinationFile)
@@ -127,23 +184,39 @@ public class BDSBackup
             var desitnationFile = Path.Combine(backupPath, $"{dirName}.zip");
             CreateZipFromDirectory(sourceDirectory, desitnationFile);
             Directory.Delete(sourceDirectory, true);
-            DeleteOlderArchivedBackups(backupPath, server.Backup.BackupKeepCount);
+            DeleteOlderArchivedBackups(server);
         }
         _consoleHub.UpdateConsoleOutput(server.Path, $"Archived backups for {server.Options.Name}");
         return Task.CompletedTask;
     }
 
-    private void DeleteOlderArchivedBackups(string path, int maxBackups)
+    private void DeleteOlderArchivedBackups(ServerModel server)
     {
+        if(string.IsNullOrEmpty(_backupsPath))
+            throw new Exception("BackupsPath is not set in appsettings.json");
+        var path = Path.Combine(_backupsPath, server.Path);
         var files = Directory.GetFiles(path);
-        if (files.Length <= maxBackups)
-            return;
-
-        var filesToDelete = files.Length - maxBackups;
-        var filesToDeleteList = files.OrderBy(f => f).Take(filesToDelete).ToList();
-        foreach (var file in filesToDeleteList)
+        var worldBackupFiles = files.Where(x => x.Contains("WORLD_BACKUP_")).ToList();
+        var fullBackupFiles = files.Where(x => x.Contains("FULL_BACKUP_")).ToList();
+        
+        if(worldBackupFiles.Count > server.Backup.WorldBackupKeepCount)
         {
-            File.Delete(file);
+            var filesToDelete = worldBackupFiles.Count - server.Backup.WorldBackupKeepCount;
+            var filesToDeleteList = worldBackupFiles.OrderBy(f => f).Take(filesToDelete).ToList();
+            foreach (var file in filesToDeleteList)
+            {
+                File.Delete(file);
+            }
+        }
+
+        if(fullBackupFiles.Count > server.Backup.BackupKeepCount)
+        {
+            var filesToDelete = fullBackupFiles.Count - server.Backup.BackupKeepCount;
+            var filesToDeleteList = fullBackupFiles.OrderBy(f => f).Take(filesToDelete).ToList();
+            foreach (var file in filesToDeleteList)
+            {
+                File.Delete(file);
+            }
         }
     }
 
@@ -201,6 +274,12 @@ public class BDSBackup
         }
 
         Directory.Delete(backupDirectory, true);
+        _consoleHub.UpdateConsoleOutput(server.Path, $"Restored backup {archiveFileName} for {server.Options.Name}");
         return Task.CompletedTask;
+    }
+
+    internal void TrimWorldBackup(string path)
+    {
+        throw new NotImplementedException();
     }
 }

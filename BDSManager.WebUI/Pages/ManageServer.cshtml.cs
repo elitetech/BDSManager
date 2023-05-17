@@ -323,26 +323,33 @@ public class ManageServerModel : PageModel
         return RedirectToPage("./Index");
     }
 
-    public async Task<IActionResult> OnPostRestoreFromBackup(string path, string backupFileName, bool restoreWorldOnly)
+    public async Task<JsonResult> OnPostRestoreFromBackup(string path, string backupFileName)
     {
         if (string.IsNullOrEmpty(path))
-            return RedirectToPage("./Index");
+            return new JsonResult(new { success = false, message = "Path is null or empty" });
         if (string.IsNullOrEmpty(backupFileName))
-            return RedirectToPage("./Index");
+            return new JsonResult(new { success = false, message = "BackupFileName is null or empty" });
 
         var server = _optionsIO.ManagerOptions.Servers.FirstOrDefault(x => x.Path == path);
         if (server == null)
-            return RedirectToPage("./Index");
+            return new JsonResult(new { success = false, message = "Server not found" });
+
+        var restoreWorldOnly = backupFileName.Contains("WORLD_BACKUP_");
+        if(!restoreWorldOnly && !backupFileName.Contains("FULL_BACKUP_"))
+            return new JsonResult(new { success = false, message = "BackupFileName is invalid" });
 
         var instance = _minecraftServerService.ServerInstances.FirstOrDefault(x => x.Path == server.Path);
-        if(instance != null)
+        var running = instance != null && instance.ServerProcess != null && !instance.ServerProcess.HasExited;
+        if(instance != null && running)
             await _minecraftServerService.StopServerInstance(instance, "RESTORE");
 
         await _bdsBackup.RestoreBackup(server, backupFileName, restoreWorldOnly);
         if(!restoreWorldOnly)
             _optionsIO.RefreshServers();
 
-        return RedirectToPage("./ManageServer", new { createNew = false, path = path, newAddon = false });
+        if(running)
+            await _minecraftServerService.StartServerInstance(server);
+        return new JsonResult(new { success = true, message = "Restored" });
     }
 
     public Task<JsonResult> OnPostBackupList(string path)
