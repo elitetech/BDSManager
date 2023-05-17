@@ -17,9 +17,11 @@ public class MinecraftServerService
     private readonly ServerProperties _serverProperties;
     private readonly IHostApplicationLifetime _appLifetime;
     private readonly BDSBackup _bdsBackup;
-    private readonly int MAX_LOG_LINES = 1000;
-    private readonly int MAX_PROCESS_TIMEOUT = 10000;
+    private const int MAX_LOG_LINES = 1000;
+    private const int MAX_PROCESS_TIMEOUT = 10000;
     private const int SHUTDOWN_WARNING_TIME = 1000 * 60;
+    private const int MAX_QUERY_TRIES = 10;
+    private const int QUERY_INTERVAL = 1000 * 5;
 
     public MinecraftServerService(IConfiguration configuration, ConsoleHub consoleHub, OptionsIO optionsIO, ServerProperties serverProperties, BDSBackup bdsBackup, IHostApplicationLifetime appLifetime)
     {
@@ -279,8 +281,9 @@ public class MinecraftServerService
         return;
     }
 
-    private void ProcessConsoleOutput(ServerInstance instance, string output)
+    private async void ProcessConsoleOutput(ServerInstance instance, string output)
     {
+        instance = ServerInstances.FirstOrDefault(x => x.Path == instance.Path) ?? instance;
         if (string.IsNullOrEmpty(output) || string.IsNullOrWhiteSpace(instance.Path))
             return;
 
@@ -292,6 +295,42 @@ public class MinecraftServerService
             ProcessPlayer(instance, output, playerConnected);
             return;
         }
+
+        if(instance.SaveQuery && output.Contains("level.dat"))
+        {
+            instance.SaveQuery = false;
+            await _bdsBackup.WorldBackup(instance.Path, output);
+            instance.SaveCanResume = true;
+            await SendCommandToServerInstance(instance.Path, "save resume");
+            return;
+        }
+
+        if(output.Contains("Saving..."))
+        {
+            instance.SaveQuery = true;
+            instance.SaveCanResume = false;
+            await SaveQuery(instance.Path);
+            return;
+        }
+    }
+    
+
+    private async Task SaveQuery(string serverPath)
+    {
+        var instance = ServerInstances.FirstOrDefault(x => x.Path == serverPath);
+        if(instance?.Path == null || !instance.SaveQuery)
+            return;
+        instance.SaveCanResume = false;
+        for(var i = 0; i < MAX_QUERY_TRIES; i++)
+        {
+            await SendCommandToServerInstance(instance.Path, "save query");
+            await Task.Delay(QUERY_INTERVAL);
+            if(!instance.SaveQuery)
+                break;
+        }
+        // if save query failed, try to resume
+        if(!instance.SaveCanResume)
+            await SendCommandToServerInstance(instance.Path, "save resume");
     }
 
     private Task WarnPlayerOfShutdown(ServerInstance instance, string? reason = null, int timeLeft = SHUTDOWN_WARNING_TIME)

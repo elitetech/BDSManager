@@ -323,19 +323,37 @@
                     <div class="accordion-body">
                         <div class="row">
                             <div class="col-md-4 col-sm-6 col-xs-12">
-                                <label class="form-label" asp-for="Server.Backup.BackupEnabled">Enable Automatic Backups</label>
+                                <label class="form-label" asp-for="Server.Backup.BackupEnabled">Enable Automatic Full Backups</label>
                                 <select class="form-control" asp-for="Server.Backup.BackupEnabled" value=@(Model.Server.Backup.BackupEnabled ? "true" : "false")>
                                     <option value="true">Yes</option>
                                     <option value="false">No</option>
                                 </select>
                             </div>
                             <div class="col-md-4 col-sm-6 col-xs-12">
-                                <label class="form-label" asp-for="Server.Backup.BackupInterval">Backup Frequency (hours)</label>
+                                <label class="form-label" asp-for="Server.Backup.BackupInterval">Full Backup Frequency (hours)</label>
                                 <input type="number" class="form-control" asp-for="Server.Backup.BackupInterval" value="@Model.Server.Backup.BackupInterval" />
                             </div>
                             <div class="col-md-4 col-sm-6 col-xs-12">
-                                <label class="form-label" asp-for="Server.Backup.BackupKeepCount">Number of Backups to Keep</label>
+                                <label class="form-label" asp-for="Server.Backup.BackupKeepCount">Number of Full Backups to Keep</label>
                                 <input type="number" class="form-control" asp-for="Server.Backup.BackupKeepCount" value="@Model.Server.Backup.BackupKeepCount" />
+                            </div>
+                        </div>
+                        <hr />
+                        <div class="row">
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.Backup.WorldBackupEnabled">Enable Automatic World Backups</label>
+                                <select class="form-control" asp-for="Server.Backup.WorldBackupEnabled" value=@(Model.Server.Backup.WorldBackupEnabled ? "true" : "false")>
+                                    <option value="true">Yes</option>
+                                    <option value="false">No</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.Backup.BackupInterval">World Backup Frequency (hours)</label>
+                                <input type="number" class="form-control" asp-for="Server.Backup.WorldBackupInterval" value="@Model.Server.Backup.WorldBackupInterval" />
+                            </div>
+                            <div class="col-md-4 col-sm-6 col-xs-12">
+                                <label class="form-label" asp-for="Server.Backup.BackupKeepCount">Number of World Backups to Keep</label>
+                                <input type="number" class="form-control" asp-for="Server.Backup.WorldBackupKeepCount" value="@Model.Server.Backup.WorldBackupKeepCount" />
                             </div>
                         </div>
                         <hr />

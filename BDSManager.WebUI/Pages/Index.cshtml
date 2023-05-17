@@ -379,7 +379,7 @@
                                 </div>
                                 <input type="text" class="form-control" data-server-path="@server.Path" id="server-command-@server.Path" />
                                 <button type="button" class="btn btn-secondary" data-server-path="@server.Path" onclick="clearCommand('@server.Path')" disabled="@(!online)">Clear</button>
-                                <button type="button" class="btn btn-secondary server-command-send" data-server-path="@server.Path" onclick="sendCommandToHub('@server.Path')" disabled="@(!online)">Send</button>
+                                <button type="button" class="btn btn-secondary server-command-send" data-server-path="@server.Path" disabled="@(!online)">Send</button>
                             </div>
                         </div>
                     </div>

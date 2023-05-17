@@ -13,8 +13,10 @@ public class BackupAndUpdateService : IHostedService, IDisposable
     private readonly MinecraftServerService _minecraftServerService;
     private bool _ranOnce = false;
     private bool _backingUp = false;
+    private bool _backingWorldUp = false;
     private bool _updating = false;
     private Timer? _timer;
+    private const int TASK_DELAY = 1000 * 10;
 
     public BackupAndUpdateService(OptionsIO optionsIO, BDSBackup bdsBackup, BDSUpdater bdsUpdater, ServerProperties serverProperties, MinecraftServerService minecraftServerService)
     {
@@ -39,11 +41,13 @@ public class BackupAndUpdateService : IHostedService, IDisposable
 
     public void Dispose() => _timer?.Dispose();
 
-    private void RunJobs(object? state)
+    private async void RunJobs(object? state)
     {
         RunScheduledBackups();
         RunScheduledUpdates();
         AutoStartServers();
+        await Task.Delay(TASK_DELAY);
+        RunScheduledWorldBackups();
         
         _optionsIO.RefreshServers();
     }
@@ -63,6 +67,28 @@ public class BackupAndUpdateService : IHostedService, IDisposable
             if (instance == null || instance.ServerProcess == null || instance.ServerProcess.HasExited)
                 await _minecraftServerService.StartServerInstance(server);
         }
+    }
+
+    private async void RunScheduledWorldBackups()
+    {
+        _backingWorldUp = true;
+        var serversCount = _optionsIO.ManagerOptions.Servers.Where(x => x.Backup.WorldBackupEnabled).Count();
+        if (serversCount == 0)
+            return;
+        var didBackup = false;
+        for(var i = 0; i < serversCount; i++)
+        {
+            var server = _optionsIO.ManagerOptions.Servers.Where(x => x.Backup.WorldBackupEnabled).ElementAt(i);
+            var instance = _minecraftServerService.ServerInstances.FirstOrDefault(x => x.Path == server.Path);
+            if(instance == null || string.IsNullOrEmpty(instance.Path) || instance.ServerProcess == null || instance.ServerProcess.HasExited)
+                continue;
+
+            await _minecraftServerService.SendCommandToServerInstance(instance.Path, "save hold");
+            didBackup = true;
+        }
+        if (didBackup) 
+            _optionsIO.RefreshServers();
+        _backingWorldUp = false;
     }
 
     private async void RunScheduledBackups()
@@ -111,5 +137,14 @@ public class BackupAndUpdateService : IHostedService, IDisposable
         if (didUpdate) 
             _optionsIO.RefreshServers();
         _updating = false;
+    }
+
+    public async Task SaveWorld(ServerModel server)
+    {
+        var instance = _minecraftServerService.ServerInstances.FirstOrDefault(x => x.Path == server.Path);
+        if(instance == null || string.IsNullOrEmpty(instance.Path) || instance.ServerProcess == null || instance.ServerProcess.HasExited)
+            return;
+        await _minecraftServerService.SendCommandToServerInstance(instance.Path, "save hold");
+        return;
     }
 }

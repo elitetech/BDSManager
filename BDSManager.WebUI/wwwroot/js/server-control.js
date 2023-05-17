@@ -57,46 +57,58 @@ $(document).ready(function () {
         setUptime();
     }, 1000);
 
+    $('.server-command-send').click(function (e) {
+        e.preventDefault();
+        let path = $(this).attr('data-server-path');
+        let command = $(`#server-command-${path}`).val();
+        if (command) {
+            sendCommandToHub(path, command);
+            $(`#server-command-${path}`).val('');
+        }
+    });
     
-    $(document).on('keypress', 'input[id^="server-command-"]', function (e) {
-        if (e.key == "Enter" || e.keyCode == 13) {
+    $('input[id^="server-command-"]').on('keydown', function (e) {
+        if (e.code == "Enter" || e.charCode == 13) {
             $(this).parent().find('.server-command-send').click();
             return false;
         }
-    });
-
-    $(document).on('keydown', 'input[id^="server-command-"]', function (e) {
-        if (e.key == "ArrowUp" || e.key == "ArrowDown" || e.keyCode == 38 || e.keyCode == 40) {
+        if (e.code == "ArrowUp" || e.code == "ArrowDown" || e.charCode == 38 || e.charCode == 40) {
             let path = $(this).attr('data-server-path');
             let command = $(this).val();
-            let commandCache = _commandCache[parseInt(path)];
             let newCommand = '';
-            if (commandCache) {
-                let index = commandCache.indexOf(command);
-                if(index === -1) 
-                    index = commandCache.length;
-                if (e.key == "ArrowUp" || e.keyCode == 38) {
-                    // up arrow
-                    if (index > 0) {
-                        index--;
-                    }
-                    newCommand = commandCache[index];
-                } else {
-                    // down arrow
-                    if (index < commandCache.length - 1) {
-                        index++;
-                        newCommand = commandCache[index];
-                    }
-                    else {
-                        newCommand = '';
-                    }
-                }
-                $(this).val(newCommand);
-            }
+            if (e.code == "ArrowUp" || e.charCode == 38)
+                newCommand = getCommandFromCache(path, command, "up");
+            else 
+                newCommand = getCommandFromCache(path, command, "down");
+            
+            $(this).val(newCommand);
             return false;
         }
     });
 });
+
+function getCommandFromCache(path, command, direction) {
+    let commandCache = _commandCache[path];
+    if (commandCache) {
+        let index = commandCache.indexOf(command);
+        if (index === -1)
+            index = commandCache.length;
+        if (direction === "up") {
+            // up arrow 
+            if (index > 0) {
+                index--;
+            }
+            return commandCache[index];
+        } else {
+            // down arrow
+            if (index < commandCache.length - 1) {
+                index++;
+                return commandCache[index];
+            }
+        }
+    }
+    return '';
+}
 
 function setUptime() {
     let serverRows = $('tr.server-row');
@@ -109,7 +121,7 @@ function setUptime() {
         let diff = now - uptime;
 
         const seconds = Math.floor((diff / 1000) % 60);
-        if(seconds == undefined || seconds == null || seconds == NaN) return;
+        if(seconds == undefined || seconds == null || isNaN(seconds)) return;
         const minutes = Math.floor((diff / 1000 / 60) % 60);
         const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -238,7 +250,7 @@ function setupServerContextMenu(path, online){
     });
     backupServerLink.off("click").click(function(e){
         e.preventDefault();
-        sendCommand(path, "backup");
+        sendCommandToHub(path, "backup");
     });
     restoreServerLink.off("click").click(function(e){
         e.preventDefault();
@@ -274,25 +286,25 @@ function setupPlayerContextMenu(element, event){
 
     kickPlayerLink.off("click").click(function(e){
         e.preventDefault();
-        sendCommand(path, `kick ${name}`);
+        sendCommandToHub(path, `kick ${name}`);
     });
     whitelistPlayerLink.off("click").click(function(e){
         e.preventDefault();
-        sendCommand(path, `whitelist add ${name}`);
-        sendCommand(path, `whitelist reload`);
+        sendCommandToHub(path, `whitelist add ${name}`);
+        sendCommandToHub(path, `whitelist reload`);
     });
     unwhitelistPlayerLink.off("click").click(function(e){
         e.preventDefault();
-        sendCommand(path, `whitelist remove ${name}`);
-        sendCommand(path, `whitelist reload`);
+        sendCommandToHub(path, `whitelist remove ${name}`);
+        sendCommandToHub(path, `whitelist reload`);
     });
     permissionsMember.off("click").click(function(e){
         e.preventDefault();
-        sendCommand(path, `deop ${name}`);
+        sendCommandToHub(path, `deop ${name}`);
     });
     permissionsOperator.off("click").click(function(e){
         e.preventDefault();
-        sendCommand(path, `op ${name}`);
+        sendCommandToHub(path, `op ${name}`);
     });
     
     $("#player-context-menu").css({
@@ -303,25 +315,24 @@ function setupPlayerContextMenu(element, event){
 }
 
 function startServer(path){
-    sendCommand(path, "start");
+    sendCommandToHub(path, "start");
 }
 
 function stopServer(path){
-    sendCommand(path, "stop");
+    sendCommandToHub(path, "stop");
 }
 
 function restartServer(path){
-    sendCommand(path, "restart");
+    sendCommandToHub(path, "restart");
 }
 
 function checkForUpdates(path){
     alertToast("Checking for updates...");
-    sendCommand(path, "update");
+    sendCommandToHub(path, "update");
 }
 
-function sendCommandToHub(path){
+function sendCommandToHub(path, command){
     let input = $(`#server-command-${path}`);
-    let command = input.val();
     if (!command || command.length === 0) 
         return;
     cacheCommand(path, command);
@@ -611,11 +622,6 @@ function restoreFromBackup(path, backList){
                                     <option value="">Select a backup file</option>
                                     ${backupOptions}
                                 </select>
-                                <label for="restore-type">Restore Type</label>
-                                <select class="form-control" id="restore-type" name="restoreWorldOnly">
-                                    <option value="false">Full Restore (Restore Entire Server)</option>
-                                    <option value="true">World Restore (Keeping current settings)</option>
-                                </select>
                             </div>
                         </form>
                     </div>
@@ -633,7 +639,27 @@ function restoreFromBackup(path, backList){
     });
     $('#backup-restore-button').click(function(e){
         e.preventDefault();
-        $('#backup-restore-form').submit();
+        // sumbit form via ajax
+        $.ajax({
+            url: '/ManageServer?handler=RestoreFromBackup',
+            type: 'POST',
+            data: {
+                path: path,
+                backupFileName: $('#backup-file').val(),
+                __RequestVerificationToken: token
+            },
+            success: function(data){
+                alertToast(data.message);
+            },
+            error: function(xhr, status, err){
+                console.error(this.props.url, status, err.toString());
+                alertToast(err.toString());
+            },
+            complete: function(){
+                $('#backup-modal').modal('hide');
+            }            
+        });
+            
     });
 }
 
