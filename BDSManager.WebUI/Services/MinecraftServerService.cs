@@ -299,9 +299,11 @@ public class MinecraftServerService
         if(instance.SaveQuery && output.Contains("level.dat"))
         {
             instance.SaveQuery = false;
+            instance.ServerProcess?.StandardInput.WriteLine("say Backing up world...");
             await _bdsBackup.WorldBackup(instance.Path, output);
             instance.SaveCanResume = true;
             await SendCommandToServerInstance(instance.Path, "save resume");
+            instance.ServerProcess?.StandardInput.WriteLine("say World backup complete!");
             return;
         }
 
@@ -309,6 +311,7 @@ public class MinecraftServerService
         {
             instance.SaveQuery = true;
             instance.SaveCanResume = false;
+            instance.ServerProcess?.StandardInput.WriteLine("say Saving world...");
             await SaveQuery(instance.Path);
             return;
         }
