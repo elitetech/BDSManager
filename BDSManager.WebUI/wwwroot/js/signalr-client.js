@@ -21,7 +21,7 @@ async function startConsoleHub() {
         await consoleHub.start();
     } catch (err) {
         console.log(err);
-        setTimeout(() => start(), 5000);
+        setTimeout(() => startConsoleHub(), 5000);
     }
 }
 
@@ -30,7 +30,7 @@ async function startCommandHub() {
         await commandHub.start();
     } catch (err) {
         console.log(err);
-        setTimeout(() => start(), 5000);
+        setTimeout(() => startCommandHub(), 5000);
     }
 }
 

@@ -82,7 +82,14 @@ public class BackupAndUpdateService : IHostedService, IDisposable
             var instance = _minecraftServerService.ServerInstances.FirstOrDefault(x => x.Path == server.Path);
             if(instance == null || string.IsNullOrEmpty(instance.Path) || instance.ServerProcess == null || instance.ServerProcess.HasExited)
                 continue;
-
+            if(server.Backup.NextWorldBackup == null || server.Backup.NextWorldBackup >= DateTime.Now)
+                continue;
+            if(server.Backup.LastWorldBackup > server.Players.Select(x => x.LastSeen).Max()?.AddHours(server.Backup.WorldBackupInterval))
+            {
+                server.Backup.NextWorldBackup = DateTime.Now.AddHours(server.Backup.WorldBackupInterval);
+                _serverProperties.SaveServerSettings(server);
+                continue;
+            }
             await _minecraftServerService.SendCommandToServerInstance(instance.Path, "save hold");
             didBackup = true;
         }
